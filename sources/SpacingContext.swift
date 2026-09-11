@@ -77,7 +77,12 @@ final class SpacingContext {
 
   func prepare(client: IMKTextInput?) {
     guard mode != .off else { return }
-    tracker.prepare(snapshot: snapshot(client))
+    let result = read(client)
+    if mode == .adaptive, case .invalidSelection = result {
+      tracker.invalidate(reason: .snapshot)
+    } else {
+      tracker.prepare(snapshot: result.snapshot)
+    }
     send()
   }
 
@@ -132,13 +137,23 @@ final class SpacingContext {
       invalidate(.commit)
       return
     }
-    let after = snapshot(client)
-    if mode == .verified {
+    let result = read(client)
+    let after = result.snapshot
+    if mode == .adaptive, case .invalidSelection = result {
+      tracker.invalidate(reason: .commit)
+      send()
+      return
+    }
+    if mode == .verified || (mode == .adaptive && before != nil && after != nil) {
       guard let before, let after, after.marked == nil,
         after.location == before.location + text.utf16.count,
         after.before == InputContinuityTracker.suffix(before.before + text)
       else {
-        tracker.prepare(snapshot: nil)
+        if mode == .adaptive {
+          tracker.invalidate(reason: .commit)
+        } else {
+          tracker.prepare(snapshot: nil)
+        }
         send()
         return
       }
@@ -148,8 +163,12 @@ final class SpacingContext {
   }
 
   private func snapshot(_ client: IMKTextInput?) -> InputContinuityTracker.Snapshot? {
+    read(client).snapshot
+  }
+
+  private func read(_ client: IMKTextInput?) -> InputContextProbe.Result {
     // Compatibility mode deliberately avoids synchronous document queries.
-    mode == .verified ? InputContextProbe.snapshot(client: client) : nil
+    mode == .verified || mode == .adaptive ? InputContextProbe.read(client: client) : .unavailable
   }
 
   private func send() {

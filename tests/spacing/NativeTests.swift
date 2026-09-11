@@ -68,6 +68,31 @@ struct NativeTests {
     commit("compatibility")
     assert(state() == "tracking")
     context.suspend()
+    let adaptive = InputContinuityTracker.Mode(rawValue: "adaptive") ?? .verified
+    context.activate(session: 3, client: client, mode: adaptive)
+    commit("中文")
+    context.prepare(client: client)
+    assert(state() == "tracking", "adaptive mode retains continuity without readable context")
+    client.unavailable = false
+    context.prepare(client: client)
+    assert(state() == "tracking", "restored query support must not erase event continuity")
+    client.view.setSelectedRange(NSRange(location: 0, length: 2))
+    context.prepare(client: client)
+    assert(state() == "empty", "known replacement selection must reset, not fall back")
+    client.view.setSelectedRange(NSRange(location: client.view.string.utf16.count, length: 0))
+    context.prepare(client: client)
+    commit("hello")
+    let rejectedBefore = context.beforeCommit(client: client)
+    context.didCommit("missing", before: rejectedBefore, client: client)
+    assert(state() == "empty", "known failed insertion must not use the unavailable fallback")
+    commit("中文")
+    client.unavailable = true
+    context.prepare(client: client)
+    assert(state() == "tracking", "losing query support must preserve event continuity")
+    context.invalidate(.pointer)
+    context.prepare(client: client)
+    assert(state() == "empty")
+    context.suspend()
     print(
       "PASS: native NSTextView selection, marked text, commit confirmation, shortcuts, unsupported clients, teardown"
     )

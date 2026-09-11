@@ -110,6 +110,52 @@ struct EngineTests {
       h.type("zhongwen hello")
       h.key("\r", code: 36, rime: 0xff0d)
     }
+    func adaptive(_ h: Harness) {
+      h.spacing.activate(
+        session: h.session, client: h.client,
+        mode: InputContinuityTracker.Mode(rawValue: "adaptive") ?? .verified)
+      h.client.unavailable = true
+    }
+    run("adaptive unavailable alternating", expected: "中文 hello 中文") { h in
+      adaptive(h)
+      h.type("zhongwen ")
+      h.mode(true)
+      h.type("hello")
+      h.mode(false)
+      h.type("zhongwen ")
+    }
+    run("adaptive newline", expected: "中文\nhello") { h in
+      adaptive(h)
+      h.type("zhongwen ")
+      h.key("\r", code: 36, rime: 0xff0d)
+      h.mode(true)
+      h.type("hello")
+    }
+    run("adaptive pointer", expected: "中文hello") { h in
+      adaptive(h)
+      h.type("zhongwen ")
+      h.spacing.invalidate(.pointer)
+      h.mode(true)
+      h.type("hello")
+    }
+    run("adaptive query recovery", expected: "中文 hello 中文") { h in
+      adaptive(h)
+      h.type("zhongwen ")
+      h.client.unavailable = false
+      h.mode(true)
+      h.type("hello")
+      h.client.unavailable = true
+      h.mode(false)
+      h.type("zhongwen ")
+    }
+    run("adaptive readable selection", expected: "中hello") { h in
+      adaptive(h)
+      h.client.unavailable = false
+      h.type("zhongwen ")
+      h.client.view.setSelectedRange(NSRange(location: 1, length: 1))
+      h.mode(true)
+      h.type("hello")
+    }
     assert(failures == 0, "\(failures) engine integration failures")
   }
 

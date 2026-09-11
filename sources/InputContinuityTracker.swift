@@ -7,7 +7,7 @@ import Foundation
 
 struct InputContinuityTracker {
   enum Mode: String {
-    case off, verified
+    case off, verified, adaptive
     case eventsOnly = "events_only"
   }
   enum State: String { case suspended, empty, tracking, uncertain }
@@ -88,7 +88,8 @@ struct InputContinuityTracker {
         location: snapshot.location + text.utf16.count,
         before: Self.suffix(prefix), marked: nil)
       state = .tracking
-    } else if mode == .eventsOnly {
+    } else if mode == .eventsOnly || mode == .adaptive {
+      expected = nil
       state = .tracking
     } else {
       reset(to: .uncertain, reason: .passthrough)

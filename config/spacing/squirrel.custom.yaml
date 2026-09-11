@@ -1,9 +1,9 @@
 # Merge these keys into your existing patch; this file is an opt-in example.
 patch:
   spacing_context/enabled: true
-  spacing_context/mode: off
-  spacing_context/apps/com.apple.TextEdit/mode: verified
-  # Enable further apps only after checking their IMK document support.
-  # spacing_context/apps/com.google.Chrome/mode: verified
-  # spacing_context/apps/com.microsoft.VSCode/mode: verified
+  spacing_context/mode: adaptive
+  status_icon/show: false
+  # Adaptive mode verifies readable context and falls back to event continuity.
+  # Optional per-app override:
+  # spacing_context/apps/com.example.App/mode: off
   # events_only skips document reads; external edits may be missed.
