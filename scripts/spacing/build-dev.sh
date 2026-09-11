@@ -24,7 +24,7 @@ cp data/squirrel.yaml "$app/Contents/SharedSupport/"
 ditto data/opencc "$app/Contents/SharedSupport/opencc"
 python3 - "$app" <<'PY'
 from pathlib import Path
-import plistlib,sys,subprocess
+import json,plistlib,sys,subprocess
 app=Path(sys.argv[1])
 p=plistlib.loads(Path('resources/Info.plist').read_bytes())
 old='im.rime.inputmethod.Squirrel';new=old+'.SpacingDev'
@@ -40,6 +40,18 @@ p.update(CFBundleIdentifier=new,CFBundleName='Squirrel Spacing Dev',CFBundleDisp
 p.pop('SUFeedURL',None);p.pop('SUPublicEDKey',None)
 p['SpacingSourceRevision']=subprocess.check_output(['git','describe','--always','--dirty'],text=True).strip()
 (app/'Contents/Info.plist').write_bytes(plistlib.dumps(p))
+catalog=json.loads(Path('resources/InfoPlist.xcstrings').read_text())
+catalog['strings']={k.replace(old,new):v for k,v in catalog['strings'].items()}
+for key,entry in catalog['strings'].items():
+    if key in ('CFBundleName','CFBundleDisplayName') or key.startswith(new):
+        for language,translation in entry.get('localizations',{}).items():
+            suffix={'zh-Hans':'空格测试版','zh-Hant':'空格測試版'}.get(language,' Spacing Dev')
+            translation['stringUnit']['value']+=suffix
+catalog_path=app.parent/'InfoPlist.xcstrings'
+catalog_path.write_text(json.dumps(catalog,ensure_ascii=False))
+for source in (catalog_path,Path('resources/Localizable.xcstrings')):
+    subprocess.run(['xcrun','xcstringstool','compile',str(source),
+                    '--output-directory',str(app/'Contents/Resources')],check=True)
 PY
 codesign --force --deep --sign - "$app"
 codesign --verify --deep --strict "$app"
