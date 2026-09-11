@@ -21,7 +21,7 @@ final class SquirrelApplicationDelegate: NSObject, NSApplicationDelegate, SPUSta
   var enableNotifications = false
   var showStatusIcon: Bool = true
   var statusItem: NSStatusItem?
-  let updateController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
+  let updateController = SPUStandardUpdaterController(startingUpdater: !SquirrelApp.isSpacingDevelopment, updaterDelegate: nil, userDriverDelegate: nil)
   var supportsGentleScheduledUpdateReminders: Bool {
     true
   }
@@ -99,6 +99,7 @@ final class SquirrelApplicationDelegate: NSObject, NSApplicationDelegate, SPUSta
   }
 
   func checkForUpdates() {
+    guard !SquirrelApp.isSpacingDevelopment else { return }
     if updateController.updater.canCheckForUpdates {
       print("Checking for updates")
       updateController.updater.checkForUpdates()

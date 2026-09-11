@@ -10,10 +10,12 @@ import InputMethodKit
 
 @main
 struct SquirrelApp {
+  static let isSpacingDevelopment = Bundle.main.object(forInfoDictionaryKey: "SquirrelSpacingDevelopment") as? Bool == true
+  static let dataDirectoryName = isSpacingDevelopment ? "RimeSpacingDev" : "Rime"
   static let userDir = if let pwuid = getpwuid(getuid()) {
-    URL(fileURLWithFileSystemRepresentation: pwuid.pointee.pw_dir, isDirectory: true, relativeTo: nil).appending(components: "Library", "Rime")
+    URL(fileURLWithFileSystemRepresentation: pwuid.pointee.pw_dir, isDirectory: true, relativeTo: nil).appending(components: "Library", dataDirectoryName)
   } else {
-    try! FileManager.default.url(for: .libraryDirectory, in: .userDomainMask, appropriateFor: nil, create: false).appendingPathComponent("Rime", isDirectory: true)
+    try! FileManager.default.url(for: .libraryDirectory, in: .userDomainMask, appropriateFor: nil, create: false).appendingPathComponent(dataDirectoryName, isDirectory: true)
   }
   static let appDir = "/Library/Input Methods/Squirrel.app".withCString { dir in
     URL(fileURLWithFileSystemRepresentation: dir, isDirectory: false, relativeTo: nil)
