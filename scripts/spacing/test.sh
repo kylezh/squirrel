@@ -6,6 +6,8 @@ out="$root/build/spacing"
 mkdir -p "$out"
 sdk="$(xcrun --show-sdk-path)"
 common=(-I librime/src -I librime/include -I "$sdk/System/Library/Frameworks/Tk.framework/Headers")
+swiftc sources/InputSource.swift tests/spacing/InputSourceTests.swift -o "$out/input-source-tests"
+"$out/input-source-tests"
 swiftc sources/InputContinuityTracker.swift tests/spacing/TrackerTests.swift -o "$out/tracker-tests"
 "$out/tracker-tests"
 lua tests/spacing/LuaTests.lua

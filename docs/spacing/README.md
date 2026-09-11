@@ -1,6 +1,6 @@
 # Context-aware mixed Chinese/English spacing
 
-This fork adds an opt-in frontend context bridge and a Lua processor. Current base: upstream master snapshot `0cd71a6130a5866b0ae6ba0494929ebdc8211194`. Development started on Squirrel 1.1.2 and the four-patch series was then rebased onto this snapshot; the original series is retained locally as `backup/spacing-1.1.2`. The upstream branch and input dictionaries are unchanged. Do not run the stock `make install` while trying the development bundle.
+This fork adds an opt-in frontend context bridge and a Lua processor. Current base: upstream master snapshot `0cd71a6130a5866b0ae6ba0494929ebdc8211194`. Development started on Squirrel 1.1.2 and the initial four-patch series was then rebased onto this snapshot, followed by a focused input-source identity fix. The original series is retained locally as `backup/spacing-1.1.2`. The upstream branch and input dictionaries are unchanged. Do not run the stock `make install` while trying the development bundle.
 
 ## Build and test
 
@@ -44,7 +44,7 @@ Receipts describe the bytes Lua accounted for in the current commit batch, inclu
 
 ## Verification status and limits
 
-Automated checks cover the pure state machine, Lua handshake and stale epochs, native marked text/selection/commit behavior, and end-to-end in-process librime-to-NSTextView spacing. They also verify foreign direct commits, prefix receipts, copies, newline handling and unsupported queries. Run `scripts/spacing/test.sh` for current evidence.
+Automated checks cover the pure state machine, Lua handshake and stale epochs, native marked text/selection/commit behavior, and end-to-end in-process librime-to-NSTextView spacing. They also verify foreign direct commits, prefix receipts, copies, newline handling, unsupported queries, and exact separation of official/development input-source IDs used by status visibility and composition cleanup. Run `scripts/spacing/test.sh` for current evidence.
 
 Real OS dispatch and application compatibility (TextEdit, browsers, Electron/chat apps, terminals, remote desktops), focus-event races, app-specific undo grouping, and input latency still require a manual trial with the development input source. The in-process adapter does not certify these. Global event monitors are asynchronous and short snapshots do not prove all document changes were observed. No universal compatibility claim is made. Terminal/remote use should remain off until explicitly tested.
 

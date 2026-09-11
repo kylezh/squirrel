@@ -95,6 +95,16 @@ final class SquirrelInstaller {
     return unsafeBitCast(idRef, to: CFString?.self) as String?
   }
 
+  static func ownsInputSource(
+    _ sourceID: String,
+    bundleIdentifier: String = Bundle.main.bundleIdentifier ?? "im.rime.inputmethod.Squirrel"
+  ) -> Bool {
+    // Exact mode IDs keep the development bundle distinct from the official one.
+    sourceID == bundleIdentifier
+      || sourceID == bundleIdentifier + ".Hans"
+      || sourceID == bundleIdentifier + ".Hant"
+  }
+
   func disable(modes: [InputMode] = []) {
     let modesToDisable = modes.isEmpty ? InputMode.allCases : modes
     for (mode, inputSource) in getInputSource(modes: modesToDisable) {

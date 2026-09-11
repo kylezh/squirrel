@@ -25,6 +25,8 @@ if ! git -C "$tmp/worktree" -c rerere.enabled=false rebase --force-rebase "$targ
 fi
 cd "$tmp/worktree"
 mkdir -p build/spacing
+swiftc sources/InputSource.swift tests/spacing/InputSourceTests.swift -o build/spacing/input-source-tests
+build/spacing/input-source-tests
 swiftc sources/InputContinuityTracker.swift tests/spacing/TrackerTests.swift -o build/spacing/tracker-tests
 build/spacing/tracker-tests
 lua tests/spacing/LuaTests.lua
