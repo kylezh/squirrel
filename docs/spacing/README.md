@@ -21,6 +21,8 @@ Without configuration, spacing is off. The sample enables `adaptive` mode global
 
 ## Behavior
 
+Ghostty uses the per-app `events_only` override. In the installed [Ghostty 1.3.1 implementation](https://github.com/ghostty-org/ghostty/blob/332b2aefc/macos/Sources/Ghostty/Surface%20View/SurfaceView_AppKit.swift), `selectedRange()` exposes terminal selections and otherwise returns `{0, 0}`; it does not expose the terminal's insertion position. That looks like a valid empty-document snapshot, so adaptive commit verification repeatedly clears the boundary. A real-librime test reproduces missing spaces with this client behavior under adaptive mode and passes with events-only mode, including newline and pointer resets. This override avoids document queries while retaining event-based invalidation. It is narrower than disabling context checks for every app.
+
 Adjacent commits such as `hello` + `中文` become `hello 中文`; the inverse also works. Existing whitespace/punctuation breaks the boundary. ASCII letters participate; digits and formatting inside a single candidate are not changed.
 
 The bridge resets on external mouse down, focus/input-source changes, document editing keys, unhandled editing commands, or mismatched selection/short text. Normal marked-text changes, candidate selection, and plain Cmd+C/Cmd+S retain a verified boundary. Other modified shortcuts conservatively reset. All shortcuts are still delivered to the target app.

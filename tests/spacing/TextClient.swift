@@ -5,6 +5,8 @@ import InputMethodKit
 final class TextClient: NSObject, IMKTextInput {
   let view = NSTextView(frame: NSRect(x: 0, y: 0, width: 600, height: 200))
   var unavailable = false
+  // Ghostty 1.3.1 exposes terminal selection, not the insertion position.
+  var terminalSelectionOnly = false
   func insertText(_ string: Any!, replacementRange: NSRange) {
     view.insertText(string!, replacementRange: replacementRange)
   }
@@ -12,11 +14,19 @@ final class TextClient: NSObject, IMKTextInput {
     view.setMarkedText(string!, selectedRange: selectionRange, replacementRange: replacementRange)
   }
   func selectedRange() -> NSRange {
-    unavailable ? NSRange(location: NSNotFound, length: NSNotFound) : view.selectedRange()
+    if terminalSelectionOnly { return NSRange(location: 0, length: 0) }
+    return unavailable ? NSRange(location: NSNotFound, length: NSNotFound) : view.selectedRange()
   }
-  func markedRange() -> NSRange { view.markedRange() }
+  func markedRange() -> NSRange {
+    let range = view.markedRange()
+    if terminalSelectionOnly {
+      return NSRange(location: 0, length: range.location == NSNotFound ? 0 : range.length)
+    }
+    return range
+  }
   func attributedSubstring(from range: NSRange) -> NSAttributedString! {
-    unavailable ? nil : view.attributedSubstring(forProposedRange: range, actualRange: nil)
+    unavailable || terminalSelectionOnly
+      ? nil : view.attributedSubstring(forProposedRange: range, actualRange: nil)
   }
   func length() -> Int { view.string.utf16.count }
   func characterIndex(
