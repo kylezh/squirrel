@@ -1,0 +1,32 @@
+schema:
+  schema_id: spacing_test
+  name: spacing test
+  version: '1'
+switches:
+  - name: ascii_mode
+    reset: 0
+engine:
+  processors:
+    - lua_processor@*mixed_spacing
+    - lua_processor@*direct_commit
+    - ascii_composer
+    - speller
+    - selector
+    - express_editor
+  segmentors:
+    - ascii_segmentor
+    - abc_segmentor
+    - fallback_segmentor
+  translators:
+    - script_translator
+translator:
+  dictionary: spacing_test
+  enable_user_dict: true
+speller:
+  alphabet: abcdefghijklmnopqrstuvwxyz
+menu:
+  page_size: 7
+ascii_composer:
+  switch_key:
+    Shift_L: commit_code
+    Shift_R: commit_code

@@ -27,6 +27,19 @@ final class SquirrelInputController: IMKInputController {
   private var chordTimer: Timer?
   private var chordDuration: TimeInterval = 0
   private var currentApp: String = ""
+  private lazy var spacing = SpacingContext { [weak self] value in
+    guard let self, self.session != 0, self.rimeAPI.find_session(self.session) else { return }
+    self.rimeAPI.set_property(self.session, "squirrel_spacing_context", value)
+  }
+
+  private var spacingMode: InputContinuityTracker.Mode {
+    guard let config = NSApp.squirrelAppDelegate.config,
+          config.getBool("spacing_context/enabled") == true else { return .off }
+    let mode = config.getString("spacing_context/apps/\(currentApp)/mode")
+      ?? config.getString("spacing_context/mode") ?? "off"
+    return InputContinuityTracker.Mode(rawValue: mode) ?? .off
+  }
+
 
   // swiftlint:disable:next cyclomatic_complexity
   override func handle(_ event: NSEvent!, client sender: Any!) -> Bool {
@@ -44,12 +57,16 @@ final class SquirrelInputController: IMKInputController {
       }
     }
 
-    self.client ?= sender as? IMKTextInput
+    self.client = sender as? IMKTextInput
     if let app = client?.bundleIdentifier(), currentApp != app {
       currentApp = app
       updateAppOptions()
     }
 
+    spacing.ensureActive(session: session, client: client, mode: spacingMode)
+    let composing = rimeAPI.get_input(session).map { $0.pointee != 0 } ?? false
+    spacing.beforeKey(event, client: client, composing: composing)
+    defer { spacing.afterKey(event, handled: handled, client: client) }
     switch event.type {
     case .flagsChanged:
       if lastModifiers == modifiers {
@@ -124,6 +141,7 @@ final class SquirrelInputController: IMKInputController {
   }
 
   func selectCandidate(_ index: Int) -> Bool {
+    spacing.prepare(client: client)
     let success = rimeAPI.select_candidate_on_current_page(session, index)
     if success {
       rimeUpdate()
@@ -165,7 +183,8 @@ final class SquirrelInputController: IMKInputController {
   }
 
   override func activateServer(_ sender: Any!) {
-    self.client ?= sender as? IMKTextInput
+    self.client = sender as? IMKTextInput
+    spacing.activate(session: session, client: client, mode: spacingMode)
     var keyboardLayout = NSApp.squirrelAppDelegate.config?.getString("keyboard_layout") ?? ""
     if keyboardLayout == "last" || keyboardLayout == "" {
       keyboardLayout = ""
@@ -219,6 +238,7 @@ final class SquirrelInputController: IMKInputController {
   }
 
   override func deactivateServer(_ sender: Any!) {
+    spacing.suspend()
     hidePalettes()
     commitComposition(sender)
     client = nil
@@ -230,6 +250,7 @@ final class SquirrelInputController: IMKInputController {
   }
 
   override func commitComposition(_ sender: Any!) {
+    spacing.invalidate(.focus)
     self.client ?= sender as? IMKTextInput
     if session != 0 {
       if let input = rimeAPI.get_input(session) {
@@ -313,6 +334,7 @@ final class SquirrelInputController: IMKInputController {
 private extension SquirrelInputController {
 
   func onChordTimer(_: Timer) {
+    spacing.prepare(client: client)
     var processedKeys = false
     if chordKeyCount > 0 && session != 0 {
       // Chord typing releases are synthesized after the configured timeout.
@@ -392,6 +414,7 @@ private extension SquirrelInputController {
   }
 
   func destroySession() {
+    spacing.suspend()
     if session != 0 {
       _ = rimeAPI.destroy_session(session)
       session = 0
@@ -438,7 +461,12 @@ private extension SquirrelInputController {
     var commitText = RimeCommit.rimeStructInit()
     if rimeAPI.get_commit(session, &commitText) {
       if let text = commitText.text {
-        commit(string: String(cString: text))
+        let string = String(cString: text)
+        var receipt = [CChar](repeating: 0, count: 256)
+        _ = rimeAPI.get_property(session, "squirrel_spacing_receipt", &receipt, receipt.count)
+        let observed = spacing.acceptsReceipt(String(cString: receipt), text: string)
+        rimeAPI.set_property(session, "squirrel_spacing_receipt", "")
+        commit(string: string, observed: observed)
       }
       _ = rimeAPI.free_commit(&commitText)
     }
@@ -456,6 +484,7 @@ private extension SquirrelInputController {
       // swiftlint:disable:next identifier_name
       if let schema_id = status.schema_id, schemaId == "" || schemaId != String(cString: schema_id) {
         schemaId = String(cString: schema_id)
+        spacing.invalidate(.schema)
         NSApp.squirrelAppDelegate.loadSettings(for: schemaId)
         if let panel = NSApp.squirrelAppDelegate.panel {
           inlinePreedit = (panel.inlinePreedit && !rimeAPI.get_option(session, "no_inline")) || rimeAPI.get_option(session, "inline")
@@ -559,8 +588,9 @@ private extension SquirrelInputController {
     }
   }
 
-  func commit(string: String) {
+  func commit(string: String, observed: Bool = false) {
     guard let client = client else { return }
+    let spacingBefore = spacing.beforeCommit(client: client)
 
     let forceMarkedText =
       session != 0 &&
@@ -579,6 +609,7 @@ private extension SquirrelInputController {
     }
 
     client.insertText(string, replacementRange: .empty)
+    spacing.didCommit(string, before: spacingBefore, client: client, observed: observed)
     preedit = ""
     hidePalettes()
   }

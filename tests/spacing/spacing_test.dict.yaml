@@ -1,0 +1,7 @@
+---
+name: spacing_test
+version: '1'
+sort: by_weight
+...
+中文	zhong wen	1000
+你好	ni hao	1000
