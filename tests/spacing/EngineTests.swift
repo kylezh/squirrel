@@ -3,6 +3,7 @@ import InputMethodKit
 @main
 struct EngineTests {
   static func main() {
+    setbuf(stdout, nil)
     _ = NSApplication.shared
     let root = CommandLine.arguments[1]
     guard dlopen(root + "/lib/rime-plugins/librime-lua.dylib", RTLD_NOW | RTLD_GLOBAL) != nil else {
@@ -78,6 +79,39 @@ struct EngineTests {
       h.key("[", code: 33, rime: 91)
       h.mode(false)
       h.type("zhongwen ")
+    }
+    run("Chinese digit passthrough", expected: "中文 0123456789 中文") { h in
+      h.type("zhongwen 0123456789zhongwen ")
+    }
+    run("Chinese ASCII digits", expected: "中文 123 中文") { h in
+      h.type("zhongwen ")
+      h.mode(true)
+      h.type("123")
+      h.mode(false)
+      h.type("zhongwen ")
+    }
+    run("alphanumeric and decimal spacing", expected: "中文 A100 3.14 中文") { h in
+      h.type("zhongwen ")
+      h.mode(true)
+      h.type("A100 3.14")
+      h.mode(false)
+      h.type("zhongwen ")
+    }
+    run("digit selection then English", expected: "中文 hello") { h in
+      h.type("zhongwen1")
+      h.mode(true)
+      h.type("hello")
+    }
+    run("digit selection then raw digit", expected: "中文 2") { h in
+      h.type("zhongwen12")
+    }
+    run("existing space before digits", expected: "中文 123") { h in
+      h.type("zhongwen  123")
+    }
+    run("newline before digits", expected: "中文\n123") { h in
+      h.type("zhongwen ")
+      h.key("\r", code: 36, rime: 0xff0d)
+      h.type("123")
     }
     run("number selection", expected: "hello 中文") { h in
       h.mode(true)
@@ -159,6 +193,32 @@ struct EngineTests {
     func ghostty(_ h: Harness) {
       h.client.terminalSelectionOnly = true
       h.spacing.activate(session: h.session, client: h.client, mode: .eventsOnly)
+    }
+    run("Ghostty digit selection then English", expected: "中文 hello") { h in
+      ghostty(h)
+      h.type("zhongwen1")
+      h.mode(true)
+      h.type("hello")
+    }
+    run("Ghostty digit selection then raw digit", expected: "中文 2") { h in
+      ghostty(h)
+      h.type("zhongwen12")
+    }
+    run("Ghostty digit passthrough", expected: "中文 123 中文") { h in
+      ghostty(h)
+      h.type("zhongwen 123zhongwen ")
+    }
+    run("Ghostty digits after pointer reset", expected: "中文123") { h in
+      ghostty(h)
+      h.type("zhongwen ")
+      h.spacing.invalidate(.pointer)
+      h.type("123")
+    }
+    run("Ghostty digits after newline", expected: "中文\n123") { h in
+      ghostty(h)
+      h.type("zhongwen ")
+      h.key("\r", code: 36, rime: 0xff0d)
+      h.type("123")
     }
     run("Ghostty selection-only alternating", expected: "中文 hello 中文") { h in
       ghostty(h)

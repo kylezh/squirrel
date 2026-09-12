@@ -1,9 +1,10 @@
--- Space between consecutive Han and ASCII-letter commits in the same context.
+-- Space between consecutive Han and ASCII-alphanumeric commits in the same context.
 -- No document inspection: reset whenever the caret position becomes uncertain.
 local M = {}
 local function kind(cp)
   if not cp then return nil end
-  if (cp >= 65 and cp <= 90) or (cp >= 97 and cp <= 122) then return 'en' end
+  if (cp >= 48 and cp <= 57) or (cp >= 65 and cp <= 90)
+    or (cp >= 97 and cp <= 122) then return 'en' end
   if (cp >= 0x3400 and cp <= 0x4DBF) or (cp >= 0x4E00 and cp <= 0x9FFF)
     or (cp >= 0xF900 and cp <= 0xFAFF) or (cp >= 0x20000 and cp <= 0x323AF) then
     return 'zh'

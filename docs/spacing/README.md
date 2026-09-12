@@ -93,3 +93,10 @@ Set `spacing_context/enabled: false` and redeploy to disable the bridge, or sele
 Optional case-preserving English learning modules and imported-dictionary setup are documented in [ENGLISH_LEARNING.md](ENGLISH_LEARNING.md).
 
 For pending dots and literal address candidates using configuration alone, see [PENDING_URL.md](PENDING_URL.md).
+
+Chinese boundaries also include ASCII digits: `中文` followed by `123`, or
+`123` followed by `中文`, receive one space. Letters and digits share the same
+class, so `A100`, consecutive digits and decimal numbers stay intact. Numeric
+candidate-selection keys are not document text: the rule sees the selected
+candidate, while a subsequent literal digit participates in spacing. Newline,
+pointer and other context resets continue to clear the boundary.

@@ -31,3 +31,17 @@ update('broken');commit('hello');commit('中文');assert(result():sub(-#'hello�
 update('1|new-session|0|empty');commit('hello');assert(result():sub(-#'中文hello')=='中文hello')
 module.fini(env)
 print('PASS: Lua handshake, epoch resets, stale events, suspension, malformed protocol, session isolation')
+
+for digit = 0, 9 do
+  env,commit,update,result = setup('1|digits|1|empty')
+  commit('中文');commit(tostring(digit));commit('中文')
+  assert(result() == '中文 ' .. digit .. ' 中文', 'Han/digit boundaries: ' .. digit)
+  module.fini(env)
+end
+env,commit,update,result = setup('1|digits|1|empty')
+commit('A');commit('100');commit('中文');commit('3');commit('.');commit('14');commit('中文')
+assert(result() == 'A100 中文 3.14 中文', 'alphanumeric runs and decimals stay intact')
+update('1|digits|2|empty');commit('123')
+assert(result():sub(-#'中文123') == '中文123', 'numeric boundary resets with context')
+module.fini(env)
+print('PASS: digits, decimals, alphanumeric runs and numeric context reset')
