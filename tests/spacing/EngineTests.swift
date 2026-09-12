@@ -190,6 +190,32 @@ struct EngineTests {
       h.mode(true)
       h.type("hello")
     }
+    func delayedReturn(_ h: Harness, mode: InputContinuityTracker.Mode) {
+      h.spacing.activate(session: h.session, client: h.client, mode: mode)
+      h.client.delaySnapshotAfterInsert = true
+      h.type("tos")
+      h.key("\r", code: 36, rime: 0xff0d)
+      h.client.refreshSnapshot()
+      h.client.delaySnapshotAfterInsert = false
+    }
+    run("delayed snapshot reproduces missing boundary in adaptive mode", expected: "tos中文") { h in
+      delayedReturn(h, mode: .adaptive)
+      h.type("zhongwen ")
+    }
+    run("events-only preserves Return boundary with delayed snapshot", expected: "tos 中文") { h in
+      delayedReturn(h, mode: .eventsOnly)
+      h.type("zhongwen ")
+    }
+    run("events-only resets real newline after Return commit", expected: "tos\n中文") { h in
+      delayedReturn(h, mode: .eventsOnly)
+      h.key("\r", code: 36, rime: 0xff0d)
+      h.type("zhongwen ")
+    }
+    run("events-only resets pointer after Return commit", expected: "tos中文") { h in
+      delayedReturn(h, mode: .eventsOnly)
+      h.spacing.invalidate(.pointer)
+      h.type("zhongwen ")
+    }
     func ghostty(_ h: Harness) {
       h.client.terminalSelectionOnly = true
       h.spacing.activate(session: h.session, client: h.client, mode: .eventsOnly)

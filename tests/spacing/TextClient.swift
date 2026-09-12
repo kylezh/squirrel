@@ -5,9 +5,17 @@ import InputMethodKit
 final class TextClient: NSObject, IMKTextInput {
   let view = NSTextView(frame: NSRect(x: 0, y: 0, width: 600, height: 200))
   var unavailable = false
+  // Model clients whose query cache still describes the composition just after
+  // insertText returns. This is a hypothesis fixture, not a captured Slack trace.
+  var delaySnapshotAfterInsert = false
+  private var pendingSnapshot: (selection: NSRange, marked: NSRange, text: NSAttributedString)?
+  func refreshSnapshot() { pendingSnapshot = nil }
   // Ghostty 1.3.1 exposes terminal selection, not the insertion position.
   var terminalSelectionOnly = false
   func insertText(_ string: Any!, replacementRange: NSRange) {
+    if delaySnapshotAfterInsert {
+      pendingSnapshot = (view.selectedRange(), view.markedRange(), view.attributedString())
+    }
     view.insertText(string!, replacementRange: replacementRange)
   }
   func setMarkedText(_ string: Any!, selectionRange: NSRange, replacementRange: NSRange) {
@@ -15,6 +23,7 @@ final class TextClient: NSObject, IMKTextInput {
   }
   func selectedRange() -> NSRange {
     if terminalSelectionOnly { return NSRange(location: 0, length: 0) }
+    if let pendingSnapshot { return pendingSnapshot.selection }
     return unavailable ? NSRange(location: NSNotFound, length: NSNotFound) : view.selectedRange()
   }
   func markedRange() -> NSRange {
@@ -22,11 +31,12 @@ final class TextClient: NSObject, IMKTextInput {
     if terminalSelectionOnly {
       return NSRange(location: 0, length: range.location == NSNotFound ? 0 : range.length)
     }
-    return range
+    return pendingSnapshot?.marked ?? range
   }
   func attributedSubstring(from range: NSRange) -> NSAttributedString! {
-    unavailable || terminalSelectionOnly
-      ? nil : view.attributedSubstring(forProposedRange: range, actualRange: nil)
+    if unavailable || terminalSelectionOnly { return nil }
+    if let pendingSnapshot { return pendingSnapshot.text.attributedSubstring(from: range) }
+    return view.attributedSubstring(forProposedRange: range, actualRange: nil)
   }
   func length() -> Int { view.string.utf16.count }
   func characterIndex(

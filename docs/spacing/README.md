@@ -100,3 +100,14 @@ class, so `A100`, consecutive digits and decimal numbers stay intact. Numeric
 candidate-selection keys are not document text: the rule sees the selected
 candidate, while a subsequent literal digit participates in spacing. Newline,
 pointer and other context resets continue to clear the boundary.
+
+Slack (`com.tinyspeck.slackmacgap`) also opts into `events_only` as a compatibility
+workaround for a reported intermittent missing space after raw English Return
+commit, followed by Chinese input. The ordinary full-schema `tos` → Return →
+`里` sequence passed in all three modes with a synchronous test client. A
+synthetic delayed-query client reproduces the missing boundary in adaptive
+mode and preserves it in events-only mode. This demonstrates one plausible
+failure mechanism, not a captured Slack trace or confirmed Slack root cause.
+Manual Slack reproduction is still needed to confirm the reported issue is
+resolved. Real newlines, pointer events and the other existing event resets
+remain active; silent programmatic document edits may be missed.

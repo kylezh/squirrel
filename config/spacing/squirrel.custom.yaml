@@ -4,6 +4,8 @@ patch:
   spacing_context/mode: adaptive
   # Ghostty reports terminal selections, not a stable insertion position.
   spacing_context/apps/com.mitchellh.ghostty/mode: events_only
+  # Slack compatibility: avoid transient document-query state after IME commits.
+  spacing_context/apps/com.tinyspeck.slackmacgap/mode: events_only
   status_icon/show: false
   # Adaptive mode verifies readable context and falls back to event continuity.
   # Optional per-app override:
