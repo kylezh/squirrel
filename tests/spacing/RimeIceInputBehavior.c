@@ -88,13 +88,23 @@ int main(int argc, char **argv) {
     api->destroy_session(s);
   }
 
+  const char *ellipsis[] = {"... ", "nihao ...{Return}", NULL};
+  const char *ellipsis_text[] = {"...", "你好..."};
+  for (int i = 0; ellipsis[i]; i++) {
+    RimeSessionId s = session();
+    assert(api->simulate_key_sequence(s, ellipsis[i]));
+    check(s, ellipsis[i], ellipsis_text[i]);
+    api->destroy_session(s);
+  }
+
   // A dot extends the composition; it never selects the highlighted Chinese
   // candidate. Domain text must remain exact (including case/path) and unique.
   const char *urls[] = {
       "x.com",           "example.com", "EXample.com/Case?Q=Ab#Part",
       "https://x.com/A", "v2ray.com",   "abc-",
       "abc-def",         "abc-123",     "ABc-Def",
-      "foo-bar.com",     NULL};
+      "foo-bar.com",     "..",          "...",
+      "......",          NULL};
   for (int i = 0; urls[i]; i++) {
     RimeSessionId s = session();
     for (const char *p = urls[i]; *p; p++) {
@@ -175,13 +185,48 @@ int main(int argc, char **argv) {
     }
     api->destroy_session(s);
   }
+  // Control-A / Control-B page candidates without committing or deleting input.
+  {
+    RimeSessionId s = session();
+    assert(api->process_key(s, 'd', 0));
+    const char *keys = "abbbaa";
+    const int pages[] = {0, 1, 2, 3, 2, 1};
+    for (int i = 0; keys[i]; i++) {
+      int handled = api->process_key(s, keys[i], 4); // Control mask
+      RIME_STRUCT(RimeContext, ctx);
+      assert(api->get_context(s, &ctx));
+      checks++;
+      if (!handled || ctx.menu.page_no != pages[i] || !ctx.composition.length ||
+          strcmp(api->get_input(s), "d")) {
+        printf("FAIL Control-%c: handled %d, page %d, expected %d\n", keys[i],
+               handled, ctx.menu.page_no, pages[i]);
+        failures++;
+      }
+      api->free_context(&ctx);
+      RIME_STRUCT(RimeCommit, c);
+      if (api->get_commit(s, &c)) {
+        printf("FAIL Control paging committed %s\n", c.text);
+        failures++;
+        api->free_commit(&c);
+      }
+    }
+    api->clear_composition(s);
+    for (const char *p = "ab"; *p; p++) {
+      checks++;
+      if (api->process_key(s, *p, 4)) {
+        printf("FAIL Control-%c consumed without candidates\n", *p);
+        failures++;
+      }
+    }
+    api->destroy_session(s);
+  }
   // Comma commits punctuation until paging starts. Paging stays active when
   // returning to page zero, then resets with the next composition.
   {
     RimeSessionId s = session();
     assert(api->process_key(s, 'd', 0));
-    const char *keys = "..,,,";
-    const int pages[] = {1, 2, 1, 0, 0};
+    const char *keys = "...,,,,";
+    const int pages[] = {1, 2, 3, 2, 1, 0, 0};
     for (int i = 0; keys[i]; i++) {
       assert(api->process_key(s, keys[i], 0));
       RIME_STRUCT(RimeContext, ctx);
