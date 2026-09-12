@@ -1,0 +1,9 @@
+---
+name: spacing_test_english
+version: '1'
+sort: by_weight
+use_preset_vocabulary: false
+...
+pycharm	pycharm	100
+pyramid	pyramid	1
+AI	AI	100

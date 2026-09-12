@@ -1,0 +1,21 @@
+schema:
+  schema_id: spacing_test_english
+  name: English learning test
+  version: '1'
+engine:
+  processors: [speller, selector, express_editor]
+  segmentors: [abc_segmentor, fallback_segmentor]
+  translators: [lua_translator@*learning_english@english]
+  filters: [lua_filter@*learning_autocap_filter, uniquifier]
+translator:
+  dictionary: spacing_test_english
+english:
+  dictionary: spacing_test_english
+  user_dict: spacing_test_english
+  enable_user_dict: true
+  enable_completion: true
+speller:
+  alphabet: abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ
+  algebra:
+    - derive/^.+$/\U$0/
+    - derive/^./\U$0/

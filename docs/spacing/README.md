@@ -87,3 +87,7 @@ Do not push experimental behavior to upstream master. If submitting upstream lat
 ## Rollback
 
 Set `spacing_context/enabled: false` and redeploy to disable the bridge, or select the original official input source. Never overwrite the production `~/Library/Rime` when rolling back. Export/merge new learned words separately if you want to retain development-session learning. Keep the official input method installed during trials.
+
+## English learning
+
+Optional case-preserving English learning modules and imported-dictionary setup are documented in [ENGLISH_LEARNING.md](ENGLISH_LEARNING.md).
