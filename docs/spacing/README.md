@@ -91,3 +91,5 @@ Set `spacing_context/enabled: false` and redeploy to disable the bridge, or sele
 ## English learning
 
 Optional case-preserving English learning modules and imported-dictionary setup are documented in [ENGLISH_LEARNING.md](ENGLISH_LEARNING.md).
+
+For pending dots and literal address candidates using configuration alone, see [PENDING_URL.md](PENDING_URL.md).
