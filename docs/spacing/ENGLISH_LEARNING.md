@@ -39,12 +39,38 @@ Keep English codes out of the Chinese dictionary: a code such as `x z` creates
 full syllables that can hide the `xz` abbreviation for Chinese words. An
 independent English table uses contiguous codes such as `xz`.
 
-For known digit-bearing terms, a finite recognizer pattern can accept prefixes
-such as `k8`, `k8s`, `v2`, and `v2ray`. Add the pattern's tag to the English
-translator's `tags`, alongside `abc`. Keep ordinary digit selection enabled.
-An exact ambiguous sequence such as `v2` cannot simultaneously denote a term
-and the original numbered-symbol shortcut; document which behavior takes
-precedence. Do not globally add all digits to the Chinese speller alphabet.
+Never generate recognizer exceptions from every imported digit-bearing code.
+Even a finite pattern for `d1` or `p1` consumes the numeric selector before it
+can commit a Chinese candidate. Remove ambiguous letter-plus-digits entries
+from the import, and keep the recognizer exception list explicitly curated.
+For a seven-candidate page, this optional Rime Ice patch retains the requested
+`k8s` and `v2ray` spellings while ordinary abbreviation-plus-number selection
+continues to work:
+
+```yaml
+patch:
+  recognizer/patterns/alphanumeric_terms: "(?i)^(?:k8s?|v2(?:r(?:ay?)?)?)$"
+  punctuator/digit_separator_action: commit
+```
+
+The English translator must accept the `alphanumeric_terms` tag alongside
+`abc`. The `v2` prefix remains reserved for `v2ray`, so it takes precedence over
+Rime Ice's numbered-symbol shortcut. `k8` also remains reserved; reassess that
+choice if increasing the candidate page size to eight or more. Digits should
+not be added globally to the Chinese speller alphabet.
+
+`digit_separator_action: commit` makes punctuation after raw numbers commit
+immediately rather than waiting in the composition. It retains ASCII comma,
+period and colon in numeric contexts, including decimals and times. Chinese
+punctuation mappings still apply after Chinese text.
+
+Audit imported content separately from recognition rules. Back up the original
+and retain a local removal manifest. Check malformed codes, text/pronunciation
+mismatches and repeated keyboard noise. For an explicitly requested aggressive
+cleanup, remove every entry below the agreed frequency threshold (including
+entries also found in the base dictionaries), plus ambiguous digit codes.
+Frequency is only a heuristic: valid rare names and technical terms can also
+be removed. Do not modify the base dictionaries or publish personal manifests.
 
 A personal Chinese dictionary entry point can import the base dictionary body,
 all its current import tables, and the personal supplement. Select this entry
@@ -64,3 +90,11 @@ merging, and acronym fallback. It also runs a real Rime learning fixture in two
 processes: `PYRAMID` moves ahead of a higher-weight alternative after repeated
 selection under `PY`, then retains its position after restarting the engine.
 The fixture database is isolated from real user data.
+
+For changes to the personal Rime Ice configuration, compile and run
+`tests/spacing/RimeIceInputBehavior.c` using the commands in its header. It
+requires an isolated, deployed copy of that configuration, never the running
+input method's data directory. It exercises all seven selection keys for each
+ordinary single-letter prefix, explicit `d1`, Chinese punctuation and numeric
+punctuation, plus the curated technical spellings. These tests deliberately
+check committed text and an empty composition, not just candidate presence.
