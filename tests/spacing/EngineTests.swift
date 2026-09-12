@@ -302,6 +302,18 @@ struct EngineTests {
       h.client.terminalSelectionOnly = true
       h.type("zhongwen ...")
     }
+    runPeriods("Ghostty event fallback through real commit receipts", expected: "中文......") { h in
+      h.spacing.activate(session: h.session, client: h.client, mode: .eventsOnly)
+      h.eventFallback = true
+      h.client.terminalSelectionOnly = true
+      h.type("zhongwen ......")
+    }
+    runPeriods("Ghostty event fallback pointer reset", expected: "中文。。。") { h in
+      h.spacing.activate(session: h.session, client: h.client, mode: .eventsOnly)
+      h.eventFallback = true
+      h.client.terminalSelectionOnly = true
+      h.type("zhongwen .."); h.spacing.invalidate(.pointer); h.type(".")
+    }
     assert(failures == 0, "\(failures) engine integration failures")
   }
 
@@ -311,6 +323,7 @@ struct EngineTests {
     let client = TextClient()
     let periods = PeriodSequence()
     var periodsEnabled = false
+    var eventFallback = false
     var forceMarkedText = false
     lazy var spacing = SpacingContext(onReset: { [weak self] in self?.periods.reset() }) { [weak self] value in
       guard let self else { return }
@@ -360,7 +373,11 @@ struct EngineTests {
         let observed = spacing.acceptsReceipt(String(cString: receipt), text: text)
         api.set_property(session, "squirrel_spacing_receipt", "")
         let before = spacing.beforeCommit(client: client)
-        let replaced = periods.insert(text, before: before, client: client) {
+        let replaced = periods.insert(text, before: before, client: client, eventFallback: eventFallback ? { [self] in
+          client.view.deleteBackward(nil); client.view.deleteBackward(nil)
+          client.insertText("...", replacementRange: .init(location: NSNotFound, length: 0))
+          return true
+        } : nil) {
           if forceMarkedText && !client.view.hasMarkedText() && !text.isEmpty {
             client.setMarkedText(text, selectionRange: .init(location: text.utf16.count, length: 0),
                                  replacementRange: .init(location: NSNotFound, length: 0))

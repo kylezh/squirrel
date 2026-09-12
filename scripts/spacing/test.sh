@@ -14,7 +14,7 @@ lua tests/spacing/LuaTests.lua
 lua tests/spacing/EnglishLearningTests.lua
 swiftc sources/InputContinuityTracker.swift sources/InputContextProbe.swift sources/SpacingContext.swift tests/spacing/TextClient.swift tests/spacing/NativeTests.swift -o "$out/native-tests"
 "$out/native-tests"
-swiftc sources/InputContinuityTracker.swift sources/InputContextProbe.swift sources/SpacingContext.swift sources/PeriodSequence.swift tests/spacing/TextClient.swift tests/spacing/PeriodTests.swift -o "$out/period-tests"
+swiftc sources/InputContinuityTracker.swift sources/InputContextProbe.swift sources/SpacingContext.swift sources/PeriodSequence.swift sources/GhosttyPeriodKeys.swift tests/spacing/TextClient.swift tests/spacing/PeriodTests.swift -o "$out/period-tests"
 "$out/period-tests"
 if [[ ! -f lib/librime.1.dylib || ! -f librime/src/rime_api_stdbool.h ]]; then
   echo 'Missing build dependencies: run git submodule update --init librime && bash action-install.sh' >&2

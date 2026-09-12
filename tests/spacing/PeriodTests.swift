@@ -81,6 +81,72 @@ struct PeriodTests {
       }
       if other.view.string != "。。。" { failures += 1; print("FAIL other client overwritten") }
     }
+    run("event fallback first immediate", expected: "。") { h in h.fallback = true; h.dot() }
+    run("event fallback second immediate", expected: "。。") { h in h.fallback = true; h.dots(2) }
+    run("event fallback third", expected: "...") { h in h.fallback = true; h.dots(3) }
+    run("event fallback six", expected: "......") { h in h.fallback = true; h.dots(6) }
+    run("event fallback emission failure", expected: "。。。") { h in
+      h.fallback = true; h.emissionAllowed = false; h.dots(3)
+    }
+    run("event fallback other key", expected: "。。。") { h in
+      h.fallback = true; h.dots(2); h.prepare("a"); h.dot()
+    }
+    run("event fallback modifiers", expected: "。。。") { h in
+      h.fallback = true; h.dots(2); h.prepare("", type: .flagsChanged, flags: .control); h.dot()
+    }
+    for reason in [InputContinuityTracker.Reason.pointer, .focus, .schema, .edit] {
+      run("event fallback reset \(reason)", expected: "。。。") { h in
+        h.fallback = true; h.dots(2); h.spacing.invalidate(reason); h.dot()
+      }
+    }
+    run("event fallback reentrant reset", expected: "。。。") { h in
+      h.fallback = true; h.dot(); h.dot(duringInsert: { h.sequence.reset() }); h.dot()
+    }
+    run("event fallback disabled", expected: "。。。") { h in
+      h.fallback = true; h.enabled = false; h.dots(3)
+    }
+    run("event fallback composing", expected: "。。。") { h in
+      h.fallback = true; h.composing = true; h.dots(3)
+    }
+    run("event fallback does not inherit verified count", expected: "。。。") { h in
+      h.dots(2); h.fallback = true; h.dot()
+    }
+    run("event fallback failure starts a fresh sequence", expected: "。。。...") { h in
+      h.fallback = true; h.emissionAllowed = false; h.dots(3)
+      h.emissionAllowed = true; h.dots(3)
+    }
+    run("event fallback reset during emission", expected: "...。") { h in
+      h.fallback = true; h.duringEmission = { h.sequence.reset() }; h.dots(4)
+    }
+    run("event fallback does not inherit another client", expected: "。。") { h in
+      h.fallback = true; h.dots(2)
+      let other = TextClient()
+      h.prepare(".")
+      h.sequence.insert("。", before: nil, client: other, eventFallback: {
+        failures += 1; print("FAIL erased other client"); return true
+      }) { other.insertText("。", replacementRange: .init(location: NSNotFound, length: 0)) }
+    }
+    let events = GhosttyPeriodKeys.events()
+    let codes: [Int64] = [51, 51, 51, 51, 47, 47, 47, 47, 47, 47]
+    if events?.map({ $0.getIntegerValueField(.keyboardEventKeycode) }) != codes {
+      failures += 1; print("FAIL ordered two backspaces and three periods")
+    }
+    if let events {
+      for (index, event) in events.enumerated() {
+        let expectedType: CGEventType = index.isMultiple(of: 2) ? .keyDown : .keyUp
+        if event.type != expectedType || !event.flags.isEmpty || !GhosttyPeriodKeys.isSynthetic(event) {
+          failures += 1; print("FAIL event type, modifiers or marker")
+        }
+        if let bridged = NSEvent(cgEvent: event)?.cgEvent {
+          if !GhosttyPeriodKeys.isSynthetic(bridged) { failures += 1; print("FAIL NSEvent marker bridge") }
+        } else { failures += 1; print("FAIL NSEvent bridge") }
+        if index >= 4 {
+          var units = [UniChar](repeating: 0, count: 8), length = 0
+          event.keyboardGetUnicodeString(maxStringLength: units.count, actualStringLength: &length, unicodeString: &units)
+          if Array(units.prefix(length)) != [46] { failures += 1; print("FAIL ASCII period payload") }
+        }
+      }
+    }
     assert(failures == 0, "\(failures) period failures")
   }
 
@@ -88,6 +154,8 @@ struct PeriodTests {
     let client = TextClient()
     let sequence = PeriodSequence()
     var enabled = true, composing = false, ascii = false
+    var fallback = false, emissionAllowed = true
+    var duringEmission: () -> Void = {}
     lazy var spacing = SpacingContext(onReset: { [weak self] in self?.sequence.reset() }) { _ in }
     init() { spacing.activate(session: 1, client: client, mode: .verified) }
     func prepare(_ text: String, code: UInt16 = 47, type: NSEvent.EventType = .keyDown,
@@ -99,7 +167,14 @@ struct PeriodTests {
     }
     func dot(text: String = "。", duringInsert: () -> Void = {}) {
       prepare(".")
-      sequence.insert(text, before: InputContextProbe.snapshot(client: client), client: client) {
+      sequence.insert(text, before: fallback ? nil : InputContextProbe.snapshot(client: client), client: client,
+                      eventFallback: fallback ? { [self] in
+        guard emissionAllowed else { return false }
+        duringEmission()
+        client.view.deleteBackward(nil); client.view.deleteBackward(nil)
+        client.insertText("...", replacementRange: .init(location: NSNotFound, length: 0))
+        return true
+      } : nil) {
         client.insertText(text, replacementRange: .init(location: NSNotFound, length: 0))
         duringInsert()
       }

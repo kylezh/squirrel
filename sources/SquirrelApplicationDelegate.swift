@@ -237,6 +237,8 @@ final class SquirrelApplicationDelegate: NSObject, NSApplicationDelegate, SPUSta
     notifCenter.addObserver(forName: .init("SquirrelSyncNotification"), object: nil, queue: nil, using: rimeNeedsSync)
     notifCenter.addObserver(forName: .init("SquirrelToggleASCIIModeNotification"), object: nil, queue: nil, using: rimeToggleASCIIMode)
     notifCenter.addObserver(forName: .init("SquirrelGetASCIIModeNotification"), object: nil, queue: nil, using: rimeGetASCIIMode)
+    notifCenter.addObserver(forName: .init("SquirrelEventAccessNotification"),
+                            object: Bundle.main.bundleIdentifier, queue: .main, using: eventAccess)
     // Suspension behavior matters: the default coalescing holds notifications
     // back while the process is inactive, which is exactly the state Squirrel
     // enters when the user switches away — the icon would fail to hide until
@@ -431,6 +433,14 @@ private extension SquirrelApplicationDelegate {
     } else {
       NotificationCenter.default.post(name: .init("SquirrelSetASCIIModeNotification"), object: false)
     }
+  }
+
+  func eventAccess(_ notification: Notification) {
+    guard let token = notification.userInfo?["token"] as? String else { return }
+    let granted = notification.userInfo?["request"] as? Bool == true
+      ? CGRequestPostEventAccess() : CGPreflightPostEventAccess()
+    DistributedNotificationCenter.default().postNotificationName(.init("SquirrelEventAccessResponse"),
+      object: token, userInfo: ["status": granted ? "granted" : "not-granted"], deliverImmediately: true)
   }
 
   func rimeGetASCIIMode(_: Notification) {
