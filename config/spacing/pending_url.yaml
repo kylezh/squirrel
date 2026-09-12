@@ -18,5 +18,22 @@ patch:
   key_binder/bindings/+:
     - {when: paging, accept: comma, send: Page_Up}
     - {when: has_menu, accept: period, send: Page_Down}
-    - {when: has_menu, accept: Control+a, send: Page_Up}
-    - {when: has_menu, accept: Control+b, send: Page_Down}
+    - {when: has_menu, accept: Control+a, send: Control+a}
+    - {when: has_menu, accept: Control+b, send: Control+b}
+    - {when: has_menu, accept: Control+f, send: Control+f}
+    - {when: has_menu, accept: Control+n, send: Page_Down}
+    - {when: has_menu, accept: Control+p, send: Page_Up}
+  # Redispatch A/B/F to selector actions; key_binder's recursion guard allows
+  # the inner key through and consumes the outer key even at candidate limits.
+  selector/bindings/Control+a: home
+  selector/bindings/Control+b: previous_candidate
+  selector/bindings/Control+f: next_candidate
+  selector/linear/bindings/Control+a: home
+  selector/linear/bindings/Control+b: previous_candidate
+  selector/linear/bindings/Control+f: next_candidate
+  selector/vertical/bindings/Control+a: home
+  selector/vertical/bindings/Control+b: previous_candidate
+  selector/vertical/bindings/Control+f: next_candidate
+  selector/vertical/linear/bindings/Control+a: home
+  selector/vertical/linear/bindings/Control+b: previous_candidate
+  selector/vertical/linear/bindings/Control+f: next_candidate

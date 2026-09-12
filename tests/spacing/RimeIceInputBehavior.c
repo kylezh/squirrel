@@ -185,33 +185,52 @@ int main(int argc, char **argv) {
     }
     api->destroy_session(s);
   }
-  // Control-A / Control-B page candidates without committing or deleting input.
-  {
+  // Candidate shortcuts select items and pages independently of panel layout.
+  for (int layout = 0; layout < 4; layout++) {
     RimeSessionId s = session();
+    api->set_option(s, "_linear", layout & 1);
+    api->set_option(s, "_vertical", layout & 2);
     assert(api->process_key(s, 'd', 0));
-    const char *keys = "abbbaa";
-    const int pages[] = {0, 1, 2, 3, 2, 1};
-    for (int i = 0; keys[i]; i++) {
-      int handled = api->process_key(s, keys[i], 4); // Control mask
+    const struct {
+      char key;
+      int index;
+    } steps[] = {
+        {'a', 0},  {'b', 0}, {'f', 1}, {'f', 2}, {'b', 1}, {'n', 8}, {'n', 15},
+        {'p', 8},  {'f', 9}, {'a', 0}, {'n', 7}, {'b', 6}, {'f', 7}, {'n', 14},
+        {'n', 21}, {'a', 0}, {'a', 0}, {'b', 0}, {'f', 1},
+    };
+    for (size_t i = 0; i < sizeof(steps) / sizeof(steps[0]); i++) {
+      int handled = api->process_key(s, steps[i].key, 4); // Control mask
       RIME_STRUCT(RimeContext, ctx);
       assert(api->get_context(s, &ctx));
       checks++;
-      if (!handled || ctx.menu.page_no != pages[i] || !ctx.composition.length ||
-          strcmp(api->get_input(s), "d")) {
-        printf("FAIL Control-%c: handled %d, page %d, expected %d\n", keys[i],
-               handled, ctx.menu.page_no, pages[i]);
+      int index = ctx.menu.page_no * ctx.menu.page_size +
+                  ctx.menu.highlighted_candidate_index;
+      if (!handled || index != steps[i].index || !ctx.composition.length ||
+          strcmp(api->get_input(s), "d") || api->get_caret_pos(s) != 1) {
+        printf("FAIL layout %d Control-%c step %zu: handled %d, candidate %d, "
+               "expected %d, caret %zu\n",
+               layout, steps[i].key, i, handled, index, steps[i].index,
+               api->get_caret_pos(s));
         failures++;
       }
       api->free_context(&ctx);
       RIME_STRUCT(RimeCommit, c);
       if (api->get_commit(s, &c)) {
-        printf("FAIL Control paging committed %s\n", c.text);
+        printf("FAIL Control navigation committed %s\n", c.text);
         failures++;
         api->free_commit(&c);
       }
     }
-    api->clear_composition(s);
-    for (const char *p = "ab"; *p; p++) {
+    RIME_STRUCT(RimeContext, ctx);
+    assert(api->get_context(s, &ctx));
+    char *selected =
+        strdup(ctx.menu.candidates[ctx.menu.highlighted_candidate_index].text);
+    api->free_context(&ctx);
+    assert(api->process_key(s, ' ', 0));
+    check(s, "select highlighted candidate after shortcuts", selected);
+    free(selected);
+    for (const char *p = "fbnpa"; *p; p++) {
       checks++;
       if (api->process_key(s, *p, 4)) {
         printf("FAIL Control-%c consumed without candidates\n", *p);

@@ -8,10 +8,21 @@ With ordinary candidates visible, `.` goes to the next page. Before paging,
 `,` commits the selected candidate and a comma. Once Rime's `paging` state is
 active, `,` goes to the previous page and never commits text, even after returning
 to the first page. Selecting a candidate or cancelling the composition resets
-that state for new input. Control-A goes to the previous candidate page and
-Control-B to the next; both are passed to the app when no candidates are visible.
-The comma binding uses Rime's native `paging` condition, which also becomes
-active during candidate navigation. Page Up / Page Down remain available.
+that state for new input. The comma binding uses Rime's native `paging`
+condition, which also becomes active during candidate navigation.
+Page Up / Page Down remain available.
+
+While candidates are visible, Control-F highlights the next candidate,
+Control-B the previous candidate, Control-N the next page, Control-P the
+previous page, and Control-A the first candidate on the first page. With no
+candidates these shortcuts reach the application as usual.
+
+Control-A/B/F bind directly to selector actions for each panel layout, avoiding
+layout-dependent arrow keys. The key binder redispatches these three keys to
+the selector with its built-in recursion guard. It consumes the outer key even
+when the selector cannot move further; pressing Control-B or Control-A at the
+first candidate therefore neither moves the pinyin caret nor leaks a shortcut
+to the application. Page keys retain Rime's native highlight-offset behavior.
 
 A single paging dot followed immediately by a lowercase letter is reinterpreted
 by Rime as literal input. Thus `x` → `.` initially displays the next candidate
@@ -54,6 +65,7 @@ build/spacing/input-behavior "$PWD" /path/to/isolated/user-data
 ```
 
 Checks include initial comma commit, repeated dot/comma paging, returning to the
-first page, Control-A/B paging and passthrough, state reset after selection,
+first page, Control-F/B/N/P/A navigation, boundary behavior, passthrough and
+selection in all four panel layouts, state reset after selection,
 continuous `x.com`, literal ellipses, hyphens, literal case preservation, Return,
 Backspace, Escape and numeric selection/punctuation.
