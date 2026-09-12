@@ -1,4 +1,4 @@
-# Pending dots and literal address candidates
+# Pending dots, hyphens and literal address candidates
 
 The configuration in [pending_url.yaml](../../config/spacing/pending_url.yaml)
 keeps `x.` in the composition. Continuing to `x.com` produces one literal
@@ -13,12 +13,19 @@ no native application rebuild. Merge its `patch` entries into the existing
 this fork's English-learning profile; retain its relative filter position if
 upstream changes the schema layout.
 
-The URL pattern accepts the first dot, rather than requiring another character
-after it. `echo_translator` supplies a single raw candidate when no normal
+The literal-text pattern accepts the first dot or hyphen, rather than waiting
+for a later character. It runs before key bindings, so `abc-` stays in the
+composition and can continue as `abc-def`, `abc-123` or `foo-bar.com`.
+Hyphens after an alphabetic prefix take precedence over the minus-key paging
+shortcut, including when that prefix could also be pinyin. Use Page Up /
+Page Down for candidate paging (Fn+Up / Fn+Down on a standard Mac keyboard). `echo_translator` supplies a single raw candidate when no normal
 translator applies. Put it **before** the normal translators: appending it
 exposed a numeric-punctuation regression with this engine/filter pipeline.
 Restricting the existing capitalization filter to word tags preserves the exact
 case of URL hosts, paths and queries.
+
+Once a dot or hyphen starts literal input, Return commits the complete input
+exactly as typed.
 
 Dot punctuation is a one-item selection list, not a direct commit mapping.
 This also prevents dots from committing non-URL compositions such as `ni'hao.`.

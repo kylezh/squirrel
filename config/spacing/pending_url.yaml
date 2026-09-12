@@ -2,7 +2,7 @@
 # This profile assumes the fork's English-learning capitalization filter is
 # already installed in Rime Ice's third filter slot. No new Lua is required.
 patch:
-  recognizer/patterns/url: "^(www[.]|https?:|ftp[.:]|mailto:|file:).*$|^[A-Za-z][A-Za-z0-9-]*[.].*$"
+  recognizer/patterns/url: "^(www[.]|https?:|ftp[.:]|mailto:|file:).*$|^[A-Za-z][A-Za-z0-9-]*[.-].*$"
   # Echo must precede normal translators so real punctuation wins immediately.
   engine/translators/@before 0: echo_translator
   # Preserve literal URL/email case while retaining capitalization for words.

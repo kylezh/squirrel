@@ -97,6 +97,11 @@ int main(int argc, char **argv) {
                         "EXample.com/Case?Q=Ab#Part",
                         "https://x.com/A",
                         "v2ray.com",
+                        "abc-",
+                        "abc-def",
+                        "abc-123",
+                        "ABc-Def",
+                        "foo-bar.com",
                         NULL};
   for (int i = 0; urls[i]; i++) {
     RimeSessionId s = session();
@@ -118,7 +123,7 @@ int main(int argc, char **argv) {
     if (ctx.menu.num_candidates != 1 ||
         strcmp(ctx.menu.candidates[0].text, urls[i]) ||
         !ctx.menu.is_last_page || strcmp(ctx.composition.preedit, urls[i])) {
-      printf("FAIL exact unique URL candidate: %s\n", urls[i]);
+      printf("FAIL exact unique literal candidate: %s\n", urls[i]);
       failures++;
     }
     api->free_context(&ctx);
@@ -160,6 +165,20 @@ int main(int argc, char **argv) {
     assert(!after.composition.length);
     api->free_context(&after);
     checks += 2;
+    api->destroy_session(s);
+  }
+  // Literal hyphens must not remove the dedicated candidate paging keys.
+  {
+    RimeSessionId s = session();
+    assert(api->process_key(s, 'd', 0));
+    for (int page = 1; page >= 0; page--) {
+      assert(api->process_key(s, page ? 0xff56 : 0xff55, 0));
+      RIME_STRUCT(RimeContext, ctx);
+      assert(api->get_context(s, &ctx));
+      assert(ctx.menu.page_no == page);
+      api->free_context(&ctx);
+      checks++;
+    }
     api->destroy_session(s);
   }
   api->finalize();
