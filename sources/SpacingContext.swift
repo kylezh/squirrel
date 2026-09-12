@@ -18,11 +18,16 @@ final class SpacingContext {
   private var commitCount = 0
   private var commitsBeforeKey = 0
   private let publish: (String) -> Void
+  private let onReset: () -> Void
 
-  init(publish: @escaping (String) -> Void) { self.publish = publish }
+  init(onReset: @escaping () -> Void = {}, publish: @escaping (String) -> Void) {
+    self.onReset = onReset
+    self.publish = publish
+  }
 
   func activate(session: UInt, client: IMKTextInput?, mode: InputContinuityTracker.Mode) {
     stopMonitoring()
+    onReset()
     snapshotBeforeKey = nil
     if self.session != session { tracker = InputContinuityTracker() }
     self.session = session
@@ -63,6 +68,7 @@ final class SpacingContext {
   }
 
   func suspend() {
+    onReset()
     snapshotBeforeKey = nil
     tracker.suspend()
     send()
@@ -70,6 +76,7 @@ final class SpacingContext {
   }
 
   func invalidate(_ reason: InputContinuityTracker.Reason) {
+    onReset()
     snapshotBeforeKey = nil
     tracker.invalidate(reason: reason)
     send()

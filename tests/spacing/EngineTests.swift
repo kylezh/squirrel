@@ -268,6 +268,40 @@ struct EngineTests {
       h.mode(true)
       h.type("hello")
     }
+    func runPeriods(_ name: String, expected: String, body: (Harness) -> Void) {
+      let h = Harness(api: api, schema: "spacing_test_period")
+      h.periodsEnabled = true
+      body(h)
+      if h.client.view.string != expected {
+        print("FAIL \(name): \(h.client.view.string.debugDescription) != \(expected.debugDescription)")
+        failures += 1
+      } else { print("PASS \(name)") }
+    }
+    runPeriods("immediate native period", expected: "中文。") { h in h.type("zhongwen .") }
+    runPeriods("native third period replacement", expected: "中文...") { h in h.type("zhongwen ...") }
+    runPeriods("replacement then English spacing", expected: "中文...hello 中文") { h in
+      h.type("zhongwen ..."); h.mode(true); h.type("hello"); h.mode(false); h.type("zhongwen ")
+    }
+    runPeriods("marked-text compatibility replacement", expected: "中文...") { h in
+      h.forceMarkedText = true; h.type("zhongwen ...")
+    }
+    runPeriods("numeric period unchanged", expected: "1.2") { h in h.type("1.2") }
+    runPeriods("ASCII periods unchanged", expected: "...") { h in h.mode(true); h.type("...") }
+    runPeriods("paging remains composing", expected: "zhong wen") { h in
+      h.type("zhongwen...")
+      if h.api.get_input(h.session).map({ String(cString: $0) }) != "zhongwen" {
+        print("FAIL paging period entered or committed input"); failures += 1
+      }
+    }
+    runPeriods("native pointer reset", expected: "中文。。。") { h in
+      h.type("zhongwen .."); h.spacing.invalidate(.pointer); h.type(".")
+    }
+    runPeriods("native events-only fallback", expected: "中文。。。") { h in
+      h.spacing.activate(session: h.session, client: h.client, mode: .eventsOnly)
+      h.periodsEnabled = false
+      h.client.terminalSelectionOnly = true
+      h.type("zhongwen ...")
+    }
     assert(failures == 0, "\(failures) engine integration failures")
   }
 
@@ -275,15 +309,18 @@ struct EngineTests {
     let api: RimeApi_stdbool
     let session: UInt
     let client = TextClient()
-    lazy var spacing = SpacingContext { [weak self] value in
+    let periods = PeriodSequence()
+    var periodsEnabled = false
+    var forceMarkedText = false
+    lazy var spacing = SpacingContext(onReset: { [weak self] in self?.periods.reset() }) { [weak self] value in
       guard let self else { return }
       api.set_property(session, "squirrel_spacing_context", value)
     }
-    init(api: RimeApi_stdbool) {
+    init(api: RimeApi_stdbool, schema: String = "spacing_test") {
       self.api = api
       session = api.create_session()
       assert(session != 0)
-      assert(api.select_schema(session, "spacing_test"))
+      assert(api.select_schema(session, schema))
       spacing.activate(session: session, client: client, mode: .verified)
     }
     deinit {
@@ -301,6 +338,8 @@ struct EngineTests {
         keyCode: code)!
       let composing = api.get_input(session).map { $0.pointee != 0 } ?? false
       spacing.beforeKey(event, client: client, composing: composing)
+      periods.prepare(event, enabled: periodsEnabled, composing: composing,
+                      ascii: api.get_option(session, "ascii_mode") || api.get_option(session, "ascii_punct"))
       let handled =
         flags.contains(.command)
         ? false : api.process_key(session, rime, flags.contains(.shift) ? 1 : 0)
@@ -321,8 +360,15 @@ struct EngineTests {
         let observed = spacing.acceptsReceipt(String(cString: receipt), text: text)
         api.set_property(session, "squirrel_spacing_receipt", "")
         let before = spacing.beforeCommit(client: client)
-        client.insertText(text, replacementRange: NSRange(location: NSNotFound, length: NSNotFound))
-        spacing.didCommit(text, before: before, client: client, observed: observed)
+        let replaced = periods.insert(text, before: before, client: client) {
+          if forceMarkedText && !client.view.hasMarkedText() && !text.isEmpty {
+            client.setMarkedText(text, selectionRange: .init(location: text.utf16.count, length: 0),
+                                 replacementRange: .init(location: NSNotFound, length: 0))
+          }
+          client.insertText(text, replacementRange: NSRange(location: NSNotFound, length: NSNotFound))
+          spacing.didCommit(text, before: before, client: client, observed: observed)
+        }
+        if replaced { spacing.invalidate(.edit) }
         _ = api.free_commit(&commit)
       }
       var context = RimeContext_stdbool.rimeStructInit()

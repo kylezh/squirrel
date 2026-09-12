@@ -1,5 +1,6 @@
 # Merge these keys into your existing patch; this file is an opt-in example.
 patch:
+  punctuation/three_periods: true
   spacing_context/enabled: true
   spacing_context/mode: adaptive
   # Ghostty reports terminal selections, not a stable insertion position.

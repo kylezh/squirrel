@@ -1,6 +1,7 @@
 config_version: '1'
 schema_list:
   - schema: spacing_test
+  - schema: spacing_test_period
   - schema: spacing_test_english
 menu:
   page_size: 7

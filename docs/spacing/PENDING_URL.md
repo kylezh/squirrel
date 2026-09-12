@@ -2,7 +2,9 @@
 
 Merge the patch in [pending_url.yaml](../../config/spacing/pending_url.yaml)
 into `rime_ice.custom.yaml` and redeploy. This profile uses built-in Rime key
-bindings, recognition and echo translation, with no new Lua or native rebuild.
+bindings, recognition and echo translation. Immediate full stops use this patch;
+triple-dot conversion additionally requires the native frontend described below.
+No additional Lua module is needed.
 
 With ordinary candidates visible, `.` goes to the next page. Before paging,
 `,` commits the selected candidate and a comma. Once Rime's `paging` state is
@@ -45,16 +47,32 @@ The existing capitalization filter is restricted to word tags, preserving litera
 address case. Its patch index assumes this fork's Rime Ice English-learning
 profile; retain the correct filter position if upstream reorders the schema.
 
-Starting with two or more dots recognizes a literal punctuation sequence before
-key bindings: `...` and `......` each remain one exact raw candidate, confirmed
-with Space or Return. A dot typed while a word's candidates are visible still
-pages, so this does not turn repeated candidate paging into literal dots.
+With no composition, each `.` immediately commits `。`: `nihao` + Space + `.`
+commits `你好。` without another confirmation key. In the updated native bundle,
+set `punctuation/three_periods: true` in `squirrel.custom.yaml` (included in the
+sample frontend patch). Three consecutive standalone period keystrokes then
+produce `。` → `。。` → `...`; six produce `......`. There is no delay or timer.
+A dot while a word's candidates are visible still pages, and ASCII/numeric dots
+retain their existing behavior.
 
-A dot entered with no composition offers `。` for confirmation with Space;
-`nihao` + Space + `.` + Space commits `你好。`. Return retains Rime Ice's raw-input
-commit behavior. Commas outside paging and numeric separators retain their
-existing punctuation behavior. Backspace edits literal input and Escape cancels
-it without committing.
+`PeriodSequence` replaces exactly the two preceding UTF-16 code units only after
+verifying that they are this controller's own two consecutive `。` commits in the
+same client, with an unchanged unmarked caret and no selection. Other keys,
+modifier changes, mouse clicks, lifecycle transitions or mismatching document
+snapshots clear the sequence. Post-insert verification and a reset generation
+protect against stale snapshots and reentrant client callbacks. Replacement
+invalidates spacing continuity; subsequent text cannot inherit a stale boundary.
+
+Conversion requires readable context and an application honoring IMK's explicit
+replacement range. It is enabled only in verified/adaptive spacing modes. The
+existing Ghostty and Slack events_only overrides, disabled spacing, and clients
+with unavailable or stale context keep immediate `。。。`; no backspaces are
+synthesized and no blind document edit is attempted. The frontend does not try a
+second correction if a client ignores replacementRange.
+
+Return retains raw-input commit behavior inside an unfinished composition.
+Commas outside paging, numeric separators and literal address editing retain
+their existing behavior.
 
 Run the real-engine checks against an isolated deployed copy of the complete
 personal configuration, never the running input method's data directory:
@@ -67,5 +85,8 @@ build/spacing/input-behavior "$PWD" /path/to/isolated/user-data
 Checks include initial comma commit, repeated dot/comma paging, returning to the
 first page, Control-F/B/N/P/A navigation, boundary behavior, passthrough and
 selection in all four panel layouts, state reset after selection,
-continuous `x.com`, literal ellipses, hyphens, literal case preservation, Return,
-Backspace, Escape and numeric selection/punctuation.
+continuous `x.com`, immediate full stops, hyphens, literal case preservation,
+Return, Backspace, Escape and numeric selection/punctuation. Rime-only tests
+expect `。。。`; conversion belongs to the native frontend, tested with actual
+NSTextView in `PeriodTests.swift` and the punctuation-enabled real-engine fixture.
+Run all native, Lua and engine tests with `bash scripts/spacing/test.sh`.

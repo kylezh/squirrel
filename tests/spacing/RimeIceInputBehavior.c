@@ -73,8 +73,8 @@ int main(int argc, char **argv) {
       api->destroy_session(s);
     }
   }
-  const char *seq[] = {"d1",     "nihao,", "nihao . ", "nihao!", "nihao?",
-                       "nihao;", "nihao:", "1,",       "1.",     "1:",
+  const char *seq[] = {"d1",     "nihao,", "nihao .", "nihao!", "nihao?",
+                       "nihao;", "nihao:", "1,",      "1.",     "1:",
                        "k8s,",   "v2ray,", NULL};
   const char *expected[] = {"的",     "你好，", "你好。", "你好！",
                             "你好？", "你好；", "你好：", ",",
@@ -88,8 +88,10 @@ int main(int argc, char **argv) {
     api->destroy_session(s);
   }
 
-  const char *ellipsis[] = {"... ", "nihao ...{Return}", NULL};
-  const char *ellipsis_text[] = {"...", "你好..."};
+  const char *ellipsis[] = {"...", "nihao ...", NULL};
+  // Rime commits each full stop; the native frontend performs verified
+  // replacement.
+  const char *ellipsis_text[] = {"。。。", "你好。。。"};
   for (int i = 0; ellipsis[i]; i++) {
     RimeSessionId s = session();
     assert(api->simulate_key_sequence(s, ellipsis[i]));
@@ -103,8 +105,7 @@ int main(int argc, char **argv) {
       "x.com",           "example.com", "EXample.com/Case?Q=Ab#Part",
       "https://x.com/A", "v2ray.com",   "abc-",
       "abc-def",         "abc-123",     "ABc-Def",
-      "foo-bar.com",     "..",          "...",
-      "......",          NULL};
+      "foo-bar.com",     NULL};
   for (int i = 0; urls[i]; i++) {
     RimeSessionId s = session();
     for (const char *p = urls[i]; *p; p++) {

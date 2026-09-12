@@ -27,7 +27,8 @@ final class SquirrelInputController: IMKInputController {
   private var chordTimer: Timer?
   private var chordDuration: TimeInterval = 0
   private var currentApp: String = ""
-  private lazy var spacing = SpacingContext { [weak self] value in
+  private let periods = PeriodSequence()
+  private lazy var spacing = SpacingContext(onReset: { [weak self] in self?.periods.reset() }) { [weak self] value in
     guard let self, self.session != 0, self.rimeAPI.find_session(self.session) else { return }
     self.rimeAPI.set_property(self.session, "squirrel_spacing_context", value)
   }
@@ -66,6 +67,10 @@ final class SquirrelInputController: IMKInputController {
     spacing.ensureActive(session: session, client: client, mode: spacingMode)
     let composing = rimeAPI.get_input(session).map { $0.pointee != 0 } ?? false
     spacing.beforeKey(event, client: client, composing: composing)
+    let convertPeriods = NSApp.squirrelAppDelegate.config?.getBool("punctuation/three_periods") == true
+      && (spacingMode == .verified || spacingMode == .adaptive)
+    periods.prepare(event, enabled: convertPeriods, composing: composing,
+                    ascii: rimeAPI.get_option(session, "ascii_mode") || rimeAPI.get_option(session, "ascii_punct"))
     defer { spacing.afterKey(event, handled: handled, client: client) }
     switch event.type {
     case .flagsChanged:
@@ -592,24 +597,27 @@ private extension SquirrelInputController {
     guard let client = client else { return }
     let spacingBefore = spacing.beforeCommit(client: client)
 
-    let forceMarkedText =
-      session != 0 &&
-      rimeAPI.get_option(session, "force_marked_text_for_direct_commit")
+    let replaced = periods.insert(string, before: spacingBefore, client: client) {
+      let forceMarkedText =
+        session != 0 &&
+        rimeAPI.get_option(session, "force_marked_text_for_direct_commit")
 
-    // Direct commits such as full-width punctuation do not necessarily have an
-    // active marked-text phase. Some NSTextInputClient implementations require
-    // one before accepting insertText.
-    if forceMarkedText && preedit.isEmpty && !string.isEmpty {
-      let markedText = NSMutableAttributedString(string: string)
-      client.setMarkedText(
-        markedText,
-        selectionRange: NSRange(location: markedText.length, length: 0),
-        replacementRange: .empty
-      )
+      // Direct commits such as full-width punctuation do not necessarily have an
+      // active marked-text phase. Some NSTextInputClient implementations require
+      // one before accepting insertText.
+      if forceMarkedText && preedit.isEmpty && !string.isEmpty {
+        let markedText = NSMutableAttributedString(string: string)
+        client.setMarkedText(
+          markedText,
+          selectionRange: NSRange(location: markedText.length, length: 0),
+          replacementRange: .empty
+        )
+      }
+
+      client.insertText(string, replacementRange: .empty)
+      spacing.didCommit(string, before: spacingBefore, client: client, observed: observed)
     }
-
-    client.insertText(string, replacementRange: .empty)
-    spacing.didCommit(string, before: spacingBefore, client: client, observed: observed)
+    if replaced { spacing.invalidate(.edit) }
     preedit = ""
     hidePalettes()
   }
