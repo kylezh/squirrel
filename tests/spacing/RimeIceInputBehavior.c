@@ -90,19 +90,11 @@ int main(int argc, char **argv) {
 
   // A dot extends the composition; it never selects the highlighted Chinese
   // candidate. Domain text must remain exact (including case/path) and unique.
-  const char *urls[] = {"x.",
-                        "x.com",
-                        "example.com",
-                        "nihao.",
-                        "EXample.com/Case?Q=Ab#Part",
-                        "https://x.com/A",
-                        "v2ray.com",
-                        "abc-",
-                        "abc-def",
-                        "abc-123",
-                        "ABc-Def",
-                        "foo-bar.com",
-                        NULL};
+  const char *urls[] = {
+      "x.com",           "example.com", "EXample.com/Case?Q=Ab#Part",
+      "https://x.com/A", "v2ray.com",   "abc-",
+      "abc-def",         "abc-123",     "ABc-Def",
+      "foo-bar.com",     NULL};
   for (int i = 0; urls[i]; i++) {
     RimeSessionId s = session();
     for (const char *p = urls[i]; *p; p++) {
@@ -150,8 +142,10 @@ int main(int argc, char **argv) {
 
   {
     RimeSessionId s = session();
-    assert(api->simulate_key_sequence(s, "x."));
-    assert(api->process_key(s, 0xff08, 0)); // Backspace restores pinyin input.
+    assert(api->simulate_key_sequence(s, "x.c"));
+    assert(api->process_key(s, 0xff08, 0));
+    assert(
+        api->process_key(s, 0xff08, 0)); // Remove c and dot, restoring pinyin.
     RIME_STRUCT(RimeContext, ctx);
     assert(api->get_context(s, &ctx));
     assert(ctx.composition.length && ctx.menu.num_candidates > 1);
@@ -179,6 +173,37 @@ int main(int argc, char **argv) {
       api->free_context(&ctx);
       checks++;
     }
+    api->destroy_session(s);
+  }
+  // Comma commits punctuation until paging starts. Paging stays active when
+  // returning to page zero, then resets with the next composition.
+  {
+    RimeSessionId s = session();
+    assert(api->process_key(s, 'd', 0));
+    const char *keys = "..,,,";
+    const int pages[] = {1, 2, 1, 0, 0};
+    for (int i = 0; keys[i]; i++) {
+      assert(api->process_key(s, keys[i], 0));
+      RIME_STRUCT(RimeContext, ctx);
+      assert(api->get_context(s, &ctx));
+      checks++;
+      if (ctx.menu.page_no != pages[i] || !ctx.composition.length) {
+        printf("FAIL punctuation paging step %d: page %d, expected %d\n", i,
+               ctx.menu.page_no, pages[i]);
+        failures++;
+      }
+      api->free_context(&ctx);
+      RIME_STRUCT(RimeCommit, c);
+      if (api->get_commit(s, &c)) {
+        printf("FAIL paging committed %s\n", c.text);
+        failures++;
+        api->free_commit(&c);
+      }
+    }
+    assert(api->process_key(s, '1', 0));
+    check(s, "select after punctuation paging", "的");
+    assert(api->simulate_key_sequence(s, "d,"));
+    check(s, "comma after fresh composition", "的，");
     api->destroy_session(s);
   }
   api->finalize();

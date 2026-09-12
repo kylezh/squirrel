@@ -1,53 +1,50 @@
-# Pending dots, hyphens and literal address candidates
+# Punctuation paging and continuous literal input
 
-The configuration in [pending_url.yaml](../../config/spacing/pending_url.yaml)
-keeps `x.` in the composition. Continuing to `x.com` produces one literal
-candidate; Return commits the complete address without inserting a newline.
-The same rule handles ordinary alphabetic domain prefixes, including `nihao.`.
-There is no timeout and no domain whitelist.
+Merge the patch in [pending_url.yaml](../../config/spacing/pending_url.yaml)
+into `rime_ice.custom.yaml` and redeploy. This profile uses built-in Rime key
+bindings, recognition and echo translation, with no new Lua or native rebuild.
 
-This uses the existing recognizer, native `echo_translator`, punctuation
-configuration and filter tag configuration. It adds no Lua module and requires
-no native application rebuild. Merge its `patch` entries into the existing
-`rime_ice.custom.yaml`, then redeploy. The capitalization-filter entry assumes
-this fork's English-learning profile; retain its relative filter position if
-upstream changes the schema layout.
+With ordinary candidates visible, `.` goes to the next page. Before paging,
+`,` commits the selected candidate and a comma. Once Rime's `paging` state is
+active, `,` goes to the previous page and never commits text, even after returning
+to the first page. Selecting a candidate or cancelling the composition resets
+that state for new input. This uses Rime's native `paging` condition, which also
+becomes active during candidate navigation. Page Up / Page Down remain available.
 
-The literal-text pattern accepts the first dot or hyphen, rather than waiting
-for a later character. It runs before key bindings, so `abc-` stays in the
-composition and can continue as `abc-def`, `abc-123` or `foo-bar.com`.
-Hyphens after an alphabetic prefix take precedence over the minus-key paging
-shortcut, including when that prefix could also be pinyin. Use Page Up /
-Page Down for candidate paging (Fn+Up / Fn+Down on a standard Mac keyboard). `echo_translator` supplies a single raw candidate when no normal
-translator applies. Put it **before** the normal translators: appending it
-exposed a numeric-punctuation regression with this engine/filter pipeline.
-Restricting the existing capitalization filter to word tags preserves the exact
-case of URL hosts, paths and queries.
+A single paging dot followed immediately by a lowercase letter is reinterpreted
+by Rime as literal input. Thus `x` → `.` initially displays the next candidate
+page without committing; continuing with `com` restores `x.com` as the sole raw
+candidate, and Return commits the complete address. Repeated paging punctuation
+stays paging. The recognizer requires text after the first dot so it does not
+steal the initial paging key. Explicit protocol prefixes and already recognized
+literal addresses continue to accept punctuation as text.
 
-Once a dot or hyphen starts literal input, Return commits the complete input
-exactly as typed.
+A hyphen after an alphabetic prefix starts literal input immediately, allowing
+`abc-def`, `abc-123` and `foo-bar.com`. This takes precedence over the minus-key
+paging shortcut. Pre-delimiter numeric candidate selection still works; use
+ASCII mode for prefixes that conflict with selection keys or the first-dot
+reinterpretation rule.
 
-Dot punctuation is a one-item selection list, not a direct commit mapping.
-This also prevents dots from committing non-URL compositions such as `ni'hao.`.
-A standalone Chinese full stop therefore needs selection with Space; for
-example, `nihao` + Space + `.` + Space commits `你好。`. Return in an unfinished
-composition retains Rime Ice's raw-input behavior. Commas keep their existing
-immediate-commit behavior, including the configured ASCII comma after numbers.
-Numeric separators after already committed raw digits retain the existing
-numeric-punctuation setting.
+`echo_translator` supplies the raw candidate and must precede normal translators:
+appending it exposed a numeric-punctuation regression with this filter pipeline.
+The existing capitalization filter is restricted to word tags, preserving literal
+address case. Its patch index assumes this fork's Rime Ice English-learning
+profile; retain the correct filter position if upstream reorders the schema.
 
-Backspace can remove the dot and restore pinyin candidates; Escape cancels the
-pending address. Existing pre-dot selection shortcuts remain in force: this
-profile does not swallow digit selection just to anticipate a possible future
-domain name. Use ASCII mode for address prefixes that conflict with those
-shortcuts.
+A dot entered with no composition offers `。` for confirmation with Space;
+`nihao` + Space + `.` + Space commits `你好。`. Return retains Rime Ice's raw-input
+commit behavior. Commas outside paging and numeric separators retain their
+existing punctuation behavior. Backspace edits literal input and Escape cancels
+it without committing.
 
-Run `tests/spacing/RimeIceInputBehavior.c` against an isolated deployed copy of
-the full configuration. It checks premature commits at every address keystroke,
-exact unique candidates, Return, Backspace, Escape, mixed-case paths, Chinese
-punctuation, numeric punctuation and the existing abbreviation-selection rules.
+Run the real-engine checks against an isolated deployed copy of the complete
+personal configuration, never the running input method's data directory:
 
 ```sh
 cc -I librime/src tests/spacing/RimeIceInputBehavior.c -o build/spacing/input-behavior
 build/spacing/input-behavior "$PWD" /path/to/isolated/user-data
 ```
+
+Checks include initial comma commit, repeated dot/comma paging, returning to the
+first page, state reset after selection, continuous `x.com`, hyphens, literal
+case preservation, Return, Backspace, Escape and numeric selection/punctuation.
