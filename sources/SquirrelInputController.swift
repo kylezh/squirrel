@@ -42,17 +42,9 @@ final class SquirrelInputController: IMKInputController {
   }
 
 
-  private var ghosttyPeriodFallback: Bool {
-    currentApp == GhosttyPeriodKeys.bundleIdentifier && spacingMode == .eventsOnly
-      && NSApp.squirrelAppDelegate.config?.getBool("punctuation/ghostty_backspace") == true
-  }
-
   // swiftlint:disable:next cyclomatic_complexity
   override func handle(_ event: NSEvent!, client sender: Any!) -> Bool {
     guard let event = event else { return false }
-    // Our replacement keys must reach Ghostty directly, before either Rime or
-    // the continuity tracker sees them. Otherwise ASCII dots become full stops.
-    if let cgEvent = event.cgEvent, GhosttyPeriodKeys.isSynthetic(cgEvent) { return false }
     let modifiers = event.modifierFlags
     let changes = lastModifiers.symmetricDifference(modifiers)
 
@@ -76,7 +68,7 @@ final class SquirrelInputController: IMKInputController {
     let composing = rimeAPI.get_input(session).map { $0.pointee != 0 } ?? false
     spacing.beforeKey(event, client: client, composing: composing)
     let convertPeriods = NSApp.squirrelAppDelegate.config?.getBool("punctuation/three_periods") == true
-      && (spacingMode == .verified || spacingMode == .adaptive || ghosttyPeriodFallback)
+      && (spacingMode == .verified || spacingMode == .adaptive)
     periods.prepare(event, enabled: convertPeriods, composing: composing,
                     ascii: rimeAPI.get_option(session, "ascii_mode") || rimeAPI.get_option(session, "ascii_punct"))
     defer { spacing.afterKey(event, handled: handled, client: client) }
@@ -605,8 +597,7 @@ private extension SquirrelInputController {
     guard let client = client else { return }
     let spacingBefore = spacing.beforeCommit(client: client)
 
-    let replaced = periods.insert(string, before: spacingBefore, client: client,
-                                  eventFallback: ghosttyPeriodFallback ? GhosttyPeriodKeys.post : nil) {
+    let replaced = periods.insert(string, before: spacingBefore, client: client) {
       let forceMarkedText =
         session != 0 &&
         rimeAPI.get_option(session, "force_marked_text_for_direct_commit")

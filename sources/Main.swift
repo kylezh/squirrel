@@ -31,24 +31,6 @@ struct SquirrelApp {
       let args = CommandLine.arguments
       if args.count > 1 {
         switch args[1] {
-        case "--check-event-access", "--request-event-access":
-          let center = DistributedNotificationCenter.default()
-          let token = UUID().uuidString
-          var status: String?
-          let observer = center.addObserver(forName: .init("SquirrelEventAccessResponse"), object: token,
-                                            queue: .main) { notification in
-            status = notification.userInfo?["status"] as? String
-          }
-          center.postNotificationName(.init("SquirrelEventAccessNotification"),
-            object: Bundle.main.bundleIdentifier,
-            userInfo: ["token": token, "request": args[1] == "--request-event-access"], deliverImmediately: true)
-          let timeout = Date().addingTimeInterval(2)
-          while status == nil && Date() < timeout {
-            RunLoop.current.run(until: Date().addingTimeInterval(0.01))
-          }
-          center.removeObserver(observer)
-          print(status ?? "no-running-input-method-response")
-          return true
         case "--quit":
           let bundleId = Bundle.main.bundleIdentifier!
           let runningSquirrels = NSRunningApplication.runningApplications(withBundleIdentifier: bundleId)
@@ -189,8 +171,6 @@ Perform actions:
   --ascii                    turn on ASCII mode
   --nascii                   turn off ASCII mode
   --getascii                 get current ASCII mode status
-  --check-event-access       check running input method's event-posting permission
-  --request-event-access     request that permission from the running input method
 Install Squirrel:
   --install, --register-input-source    register input source
   --enable-input-source [source id...]  input source list optional

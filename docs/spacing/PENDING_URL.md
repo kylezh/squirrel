@@ -65,33 +65,10 @@ invalidates spacing continuity; subsequent text cannot inherit a stale boundary.
 
 Conversion requires readable context and an application honoring IMK's explicit
 replacement range. It is enabled only in verified/adaptive spacing modes. The
-Slack events_only override, disabled spacing, and clients
-with unavailable or stale context keep immediate `。。。` on the verified path. The frontend does not try a
+existing Ghostty and Slack events_only overrides, disabled spacing, and clients
+with unavailable or stale context keep immediate `。。。`; no backspaces are
+synthesized and no blind document edit is attempted. The frontend does not try a
 second correction if a client ignores replacementRange.
-
-Ghostty has a separate, explicitly opted-in fallback:
-`punctuation/ghostty_backspace: true`, together with `punctuation/three_periods: true`
-and its existing `events_only` mode. The first two dots still commit `。。`.
-The third sends two Backspace down/up pairs followed by three ASCII period
-pairs directly to the foreground Ghostty process. Tagged events bypass Rime so
-its punctuation mapping cannot convert them again. All events are constructed
-and permission/target checks complete before any event is posted. A failed
-preflight commits the ordinary third `。` and clears the sequence.
-
-This requires macOS event-posting permission for the installed input method.
-Use the installed executable's `--check-event-access` / `--request-event-access`
-commands to inspect/request it, then enable that input method under System
-Settings → Privacy & Security → Accessibility. Never grant permission to a
-build-directory copy in place of the installed bundle.
-
-This fallback tracks input events, not terminal document content. Other keys,
-modifiers, mouse clicks, session/focus changes reset its count. It cannot detect
-all terminal-side edits, and Backspace behavior depends on the terminal program.
-Ordered submission is not an atomic OS transaction: physical input, same-app
-window changes or terminal output may interleave with delivery. No timer, sleeps,
-clipboard or global key destination is used. Tests validate the event batch and
-real Rime commit bookkeeping with an NSTextView receiver; they do not prove
-actual terminal delivery. Slack and other applications do not use this fallback.
 
 Return retains raw-input commit behavior inside an unfinished composition.
 Commas outside paging, numeric separators and literal address editing retain
