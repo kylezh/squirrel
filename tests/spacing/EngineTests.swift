@@ -286,6 +286,32 @@ struct EngineTests {
       h.forceMarkedText = true; h.type("zhongwen ...")
     }
     runPeriods("numeric period unchanged", expected: "1.2") { h in h.type("1.2") }
+    for digit in 0...9 {
+      runPeriods("Chinese then single digit decimal \(digit)", expected: "中文 \(digit).4") { h in
+        h.type("zhongwen \(digit).4")
+      }
+    }
+    runPeriods("digit-selected Chinese then decimal", expected: "中文 5.4") { h in
+      h.type("zhongwen15.4")
+    }
+    runPeriods("explicit space before decimal", expected: "中文 5.4") { h in
+      h.type("zhongwen  5.4")
+    }
+    runPeriods("multi-digit decimal after Chinese", expected: "中文 15.4") { h in
+      h.type("zhongwen 15.4")
+    }
+    for (input, expected) in [("5,400", "中文 5,400"), ("5:40", "中文 5:40")] {
+      runPeriods("numeric separator after automatic space: \(input)", expected: expected) { h in
+        h.type("zhongwen " + input)
+      }
+    }
+    for mode in [InputContinuityTracker.Mode.adaptive, .eventsOnly] {
+      runPeriods("Chinese then decimal in \(mode)", expected: "中文 5.4") { h in
+        h.spacing.activate(session: h.session, client: h.client, mode: mode)
+        h.client.terminalSelectionOnly = mode == .eventsOnly
+        h.type("zhongwen 5.4")
+      }
+    }
     runPeriods("ASCII periods unchanged", expected: "...") { h in h.mode(true); h.type("...") }
     runPeriods("paging remains composing", expected: "zhong wen") { h in
       h.type("zhongwen...")

@@ -25,6 +25,10 @@ local function record(text, env, passthrough)
     if first and env.last and first ~= env.last then
       receipt(' ', env)
       env.engine:commit_text(' ')
+      -- Rime records an unhandled key before notifying us. The prefix space
+      -- becomes the latest history record, although the client receives the
+      -- key after that space. Restore that order for native numeric punctuation.
+      if passthrough then env.engine.context.commit_history:push('thru', text) end
     end
     env.last = kind(utf8.codepoint(text, utf8.offset(text, -1)))
   end

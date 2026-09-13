@@ -90,3 +90,11 @@ Return, Backspace, Escape and numeric selection/punctuation. Rime-only tests
 expect `。。。`; conversion belongs to the native frontend, tested with actual
 NSTextView in `PeriodTests.swift` and the punctuation-enabled real-engine fixture.
 Run all native, Lua and engine tests with `bash scripts/spacing/test.sh`.
+
+When a raw digit follows committed Chinese, `mixed_spacing` inserts a prefix
+space during Rime's unhandled-key notification. It then appends the passthrough
+key to commit history, because Rime recorded that key before the notification
+and `commit_text(" ")` otherwise makes the space the latest record. Native
+numeric punctuation can consequently recognize `中文` + `5.4` as `中文 5.4`,
+including in events-only terminal mode. This uses Rime's existing digit separator
+rules; ordinary Chinese full stops and candidate-number selection are unchanged.

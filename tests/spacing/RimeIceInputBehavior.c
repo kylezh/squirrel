@@ -88,6 +88,45 @@ int main(int argc, char **argv) {
     api->destroy_session(s);
   }
 
+  // Include client passthrough and the active spacing handshake: engine-only
+  // punctuation tests without these miss the prefix-space history regression.
+  const char *decimal_keys[] = {"5.4", "nihao 5.4", "zhenglile 5.4",
+                                "nihao15.4", "nihao  5.4", NULL};
+  const char *decimal_text[] = {"5.4", "你好 5.4", "整理了 5.4",
+                                "你好 5.4", "你好 5.4"};
+  for (int i = 0; decimal_keys[i]; i++) {
+    RimeSessionId s = session();
+    api->set_property(s, "squirrel_spacing_context", "1|decimal-test|1|empty");
+    char output[512] = {0};
+    size_t length = 0;
+    for (const char *key = decimal_keys[i]; *key; key++) {
+      int handled = api->process_key(s, *key, 0);
+      RIME_STRUCT(RimeCommit, c);
+      if (api->get_commit(s, &c)) {
+        size_t n = strlen(c.text);
+        assert(length + n < sizeof(output));
+        memcpy(output + length, c.text, n);
+        length += n;
+        api->free_commit(&c);
+      }
+      if (!handled) {
+        assert(length + 1 < sizeof(output));
+        output[length++] = *key;
+      }
+      output[length] = 0;
+    }
+    RIME_STRUCT(RimeContext, ctx);
+    assert(api->get_context(s, &ctx));
+    checks++;
+    if (strcmp(output, decimal_text[i]) || ctx.composition.length) {
+      failures++;
+      printf("FAIL decimal stream %s: expected %s, got %s\n",
+             decimal_keys[i], decimal_text[i], output);
+    }
+    api->free_context(&ctx);
+    api->destroy_session(s);
+  }
+
   const char *ellipsis[] = {"...", "nihao ...", NULL};
   // Rime commits each full stop; the native frontend performs verified
   // replacement.
