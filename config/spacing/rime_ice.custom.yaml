@@ -1,3 +1,6 @@
 # Merge this key into your existing patch, without adding the processor twice.
 patch:
   engine/processors/@before 0: lua_processor@*mixed_spacing
+  # Accept ixn as a transposed spelling of xin, e.g. gengixn -> 更新.
+  speller/algebra/+:
+    - derive/^xin$/ixn/
