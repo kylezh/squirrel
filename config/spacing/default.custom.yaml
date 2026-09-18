@@ -1,0 +1,3 @@
+# Merge into the existing patch in your default.custom.yaml.
+patch:
+  menu/page_size: 5
