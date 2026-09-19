@@ -111,3 +111,11 @@ failure mechanism, not a captured Slack trace or confirmed Slack root cause.
 Manual Slack reproduction is still needed to confirm the reported issue is
 resolved. Real newlines, pointer events and the other existing event resets
 remain active; silent programmatic document edits may be missed.
+
+Chrome (`com.google.Chrome`) also uses `events_only` for the reported Google Docs
+sequence: commit Chinese, type `ni`, then press Return to commit the raw English.
+The delayed-query fixture reproduces a lost boundary in adaptive mode and keeps
+the space in events-only mode, including newline and pointer reset checks. This
+is a compatibility workaround, not a confirmed Google Docs implementation trace;
+live browser validation is still needed. The override applies to all Chrome tabs
+because the current configuration selects applications by bundle ID, not URL.

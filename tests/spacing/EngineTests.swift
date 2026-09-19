@@ -216,6 +216,37 @@ struct EngineTests {
       h.spacing.invalidate(.pointer)
       h.type("zhongwen ")
     }
+    // Models an editor whose document query still describes the old composition
+    // after Chinese commit. This is not a captured Google Docs client trace.
+    func delayedChinese(_ h: Harness, mode: InputContinuityTracker.Mode) {
+      h.spacing.activate(session: h.session, client: h.client, mode: mode)
+      h.client.delaySnapshotAfterInsert = true
+      h.type("zhongwen ")
+      h.client.refreshSnapshot()
+      h.client.delaySnapshotAfterInsert = false
+    }
+    run("delayed Chinese then raw ni loses adaptive boundary", expected: "中文ni") { h in
+      delayedChinese(h, mode: .adaptive)
+      h.type("ni")
+      h.key("\r", code: 36, rime: 0xff0d)
+    }
+    run("events-only preserves Chinese then raw ni", expected: "中文 ni") { h in
+      delayedChinese(h, mode: .eventsOnly)
+      h.type("ni")
+      h.key("\r", code: 36, rime: 0xff0d)
+    }
+    run("events-only resets newline before raw ni", expected: "中文\nni") { h in
+      delayedChinese(h, mode: .eventsOnly)
+      h.key("\r", code: 36, rime: 0xff0d)
+      h.type("ni")
+      h.key("\r", code: 36, rime: 0xff0d)
+    }
+    run("events-only resets pointer before raw ni", expected: "中文ni") { h in
+      delayedChinese(h, mode: .eventsOnly)
+      h.spacing.invalidate(.pointer)
+      h.type("ni")
+      h.key("\r", code: 36, rime: 0xff0d)
+    }
     func ghostty(_ h: Harness) {
       h.client.terminalSelectionOnly = true
       h.spacing.activate(session: h.session, client: h.client, mode: .eventsOnly)
