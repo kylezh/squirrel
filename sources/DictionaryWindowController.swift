@@ -8,8 +8,10 @@ final class DictionaryWindowController: NSWindowController, NSTableViewDataSourc
   private var entries: [DictionaryEntry] = []
   private var timer: Timer?
   private var busy = false
+  private var hasError = false
   private let storageQueue = DispatchQueue(label: "im.rime.squirrel.dictionaries", qos: .utility)
   private let table = NSTableView()
+  private let lastUpdated = NSTextField(labelWithString: "")
   private let status = NSTextField(wrappingLabelWithString: "")
   private let automatic = NSButton(checkboxWithTitle: "每周自动更新雾凇拼音词库", target: nil, action: nil)
   private let updateProgress = NSTextField(labelWithString: "")
@@ -27,7 +29,7 @@ final class DictionaryWindowController: NSWindowController, NSTableViewDataSourc
     window.minSize = NSSize(width: 580, height: 420)
     super.init(window: window)
     configureWindow()
-    do { state = try store.loadState() } catch { state.message = "读取更新设置失败：\(error.localizedDescription)" }
+    do { state = try store.loadState(); hasError = state.message.contains("失败") } catch { hasError = true; state.message = "读取更新设置失败：\(error.localizedDescription)" }
     refresh()
   }
 
@@ -82,8 +84,10 @@ final class DictionaryWindowController: NSWindowController, NSTableViewDataSourc
     buttons.spacing = 8
     updateProgress.font = .monospacedDigitSystemFont(ofSize: 12, weight: .regular)
     updateProgress.textColor = .secondaryLabelColor
-    let schedule = NSStackView(views: [automatic, update, updateProgress])
-    schedule.spacing = 20
+    lastUpdated.font = .systemFont(ofSize: 11)
+    lastUpdated.textColor = .secondaryLabelColor
+    let schedule = NSStackView(views: [automatic, update, updateProgress, lastUpdated])
+    schedule.spacing = 12
     let note = NSTextField(wrappingLabelWithString: "更新来源：iDvel/rime-ice。更新已安装的中英文分词库，保留个人词库与学习记录。每次修改前保存备份，完成后重新部署。")
     note.font = .systemFont(ofSize: 11)
     note.textColor = .secondaryLabelColor
@@ -119,18 +123,24 @@ final class DictionaryWindowController: NSWindowController, NSTableViewDataSourc
 
   private func refresh() {
     if !busy {
-      do { entries = try store.entries() } catch { state.message = error.localizedDescription }
+      do { entries = try store.entries() } catch { hasError = true; state.message = error.localizedDescription }
       table.reloadData()
     }
     automatic.state = state.enabled ? .on : .off
-    var message = state.message
     if let last = state.lastSuccess {
-      message += "\n上次更新：\(last.formatted(date: .abbreviated, time: .shortened))"
+      let formatter = DateFormatter()
+      formatter.dateFormat = "MM/dd HH:mm"
+      lastUpdated.stringValue = "上次 \(formatter.string(from: last))"
+      lastUpdated.toolTip = "上次更新：\(last.formatted(date: .abbreviated, time: .shortened))"
       if state.enabled {
-        message += "；下次：\(last.addingTimeInterval(7 * 86400).formatted(date: .abbreviated, time: .shortened))"
+        lastUpdated.toolTip! += "；下次：\(last.addingTimeInterval(7 * 86400).formatted(date: .abbreviated, time: .shortened))"
       }
+    } else {
+      lastUpdated.stringValue = "尚未更新"
+      lastUpdated.toolTip = nil
     }
-    status.stringValue = message
+    status.stringValue = state.message
+    status.isHidden = !hasError
     updateControls()
   }
 
@@ -145,6 +155,7 @@ final class DictionaryWindowController: NSWindowController, NSTableViewDataSourc
   private func showError(_ error: Error) {
     let alert = NSAlert(error: error)
     if let window = window, window.isVisible { alert.beginSheetModal(for: window) }
+    hasError = true
     state.message = error.localizedDescription
     refresh()
   }
@@ -164,6 +175,7 @@ final class DictionaryWindowController: NSWindowController, NSTableViewDataSourc
 
   @objc private func updateNow() {
     guard !busy else { return }
+    hasError = false
     updateProgress.stringValue = "准备更新…"
     busy = true
     state.lastAttempt = Date()
@@ -183,9 +195,11 @@ final class DictionaryWindowController: NSWindowController, NSTableViewDataSourc
         self.state.message = "已更新 \(updates.count) 个词库，已请求重新部署。"
         self.deploy()
         do { try self.store.saveState(self.state) } catch {
+          self.hasError = true
           self.state.message += " 更新设置保存失败：\(error.localizedDescription)"
         }
       } catch {
+        self.hasError = true
         self.updateProgress.stringValue = "更新失败"
         self.state.message = "更新失败：\(error.localizedDescription)；自动更新将在 6 小时后重试。"
         do { try self.store.saveState(self.state) } catch { self.state.message += " 设置保存失败：\(error.localizedDescription)" }
@@ -205,6 +219,7 @@ final class DictionaryWindowController: NSWindowController, NSTableViewDataSourc
   }
 
   private func mutate(message: String, work: @escaping () throws -> Void) {
+    hasError = false
     busy = true
     state.message = "正在保存词库…"
     refresh()
