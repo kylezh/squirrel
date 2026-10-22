@@ -11,6 +11,7 @@ final class DictionaryWindowController: NSWindowController, NSTableViewDataSourc
   private var hasError = false
   private let storageQueue = DispatchQueue(label: "im.rime.squirrel.dictionaries", qos: .utility)
   private let table = NSTableView()
+  private let updateSpinner = NSProgressIndicator()
   private let lastUpdated = NSTextField(labelWithString: "")
   private let status = NSTextField(wrappingLabelWithString: "")
   private let automatic = NSButton(checkboxWithTitle: "每周自动更新雾凇拼音词库", target: nil, action: nil)
@@ -84,9 +85,14 @@ final class DictionaryWindowController: NSWindowController, NSTableViewDataSourc
     buttons.spacing = 8
     updateProgress.font = .monospacedDigitSystemFont(ofSize: 12, weight: .regular)
     updateProgress.textColor = .secondaryLabelColor
+    updateSpinner.style = .spinning
+    updateSpinner.controlSize = .small
+    updateSpinner.isIndeterminate = true
+    updateSpinner.isDisplayedWhenStopped = false
+    updateSpinner.isHidden = true
     lastUpdated.font = .systemFont(ofSize: 11)
     lastUpdated.textColor = .secondaryLabelColor
-    let schedule = NSStackView(views: [automatic, update, updateProgress, lastUpdated])
+    let schedule = NSStackView(views: [automatic, update, updateProgress, updateSpinner, lastUpdated])
     schedule.spacing = 12
     let note = NSTextField(wrappingLabelWithString: "更新来源：iDvel/rime-ice。更新已安装的中英文分词库，保留个人词库与学习记录。每次修改前保存备份，完成后重新部署。")
     note.font = .systemFont(ofSize: 11)
@@ -176,11 +182,12 @@ final class DictionaryWindowController: NSWindowController, NSTableViewDataSourc
   @objc private func updateNow() {
     guard !busy else { return }
     hasError = false
+    setUpdateAnimation(true)
     updateProgress.stringValue = "准备更新…"
     busy = true
     state.lastAttempt = Date()
     state.message = "正在下载雾凇拼音词库…"
-    do { try store.saveState(state) } catch { busy = false; updateProgress.stringValue = "更新失败"; showError(error); return }
+    do { try store.saveState(state) } catch { busy = false; setUpdateAnimation(false); updateProgress.stringValue = "更新失败"; showError(error); return }
     refresh()
     Task { @MainActor [weak self] in
       guard let self = self else { return }
@@ -205,8 +212,16 @@ final class DictionaryWindowController: NSWindowController, NSTableViewDataSourc
         do { try self.store.saveState(self.state) } catch { self.state.message += " 设置保存失败：\(error.localizedDescription)" }
       }
       self.busy = false
+      self.setUpdateAnimation(false)
       self.refresh()
     }
+  }
+
+  private func setUpdateAnimation(_ active: Bool) {
+    lastUpdated.isHidden = active
+    updateSpinner.isHidden = !active
+    if active { updateSpinner.startAnimation(nil) }
+    else { updateSpinner.stopAnimation(nil) }
   }
 
   private func performStorage(_ work: @escaping () throws -> Void) async throws {
