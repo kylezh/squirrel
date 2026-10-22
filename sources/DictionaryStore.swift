@@ -224,8 +224,11 @@ final class DictionaryStore {
     try transaction(updates)
   }
 
-  func downloadUpdates() async throws -> [String: Data] {
+  func downloadUpdates(progress: @escaping @MainActor (Int, Int) -> Void = { _, _ in }) async throws -> [String: Data] {
     var updates: [String: Data] = [:]
+    let paths = Self.updatePaths.filter { files.fileExists(atPath: root.appendingPathComponent($0).path) }
+    guard !paths.isEmpty else { throw DictionaryFailure(message: "未找到已安装的雾凇拼音词库。") }
+    await progress(0, paths.count)
     let config = URLSessionConfiguration.ephemeral
     config.timeoutIntervalForRequest = 60
     config.timeoutIntervalForResource = 300
@@ -243,15 +246,15 @@ final class DictionaryStore {
     guard revision.range(of: "^[0-9a-f]{40}$", options: .regularExpression) != nil else {
       throw DictionaryFailure(message: "上游返回了无效版本。")
     }
-    for path in Self.updatePaths where files.fileExists(atPath: root.appendingPathComponent(path).path) {
+    for path in paths {
       let url = URL(string: "https://raw.githubusercontent.com/iDvel/rime-ice/\(revision)/\(path)")!
       let (data, response) = try await session.data(from: url)
       guard (response as? HTTPURLResponse)?.statusCode == 200 else {
         throw DictionaryFailure(message: "下载失败：\(path)")
       }
       updates[path] = data
+      await progress(updates.count, paths.count)
     }
-    guard !updates.isEmpty else { throw DictionaryFailure(message: "未找到已安装的雾凇拼音词库。") }
     return updates
   }
 }

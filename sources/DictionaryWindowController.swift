@@ -12,6 +12,7 @@ final class DictionaryWindowController: NSWindowController, NSTableViewDataSourc
   private let table = NSTableView()
   private let status = NSTextField(wrappingLabelWithString: "")
   private let automatic = NSButton(checkboxWithTitle: "每周自动更新雾凇拼音词库", target: nil, action: nil)
+  private let updateProgress = NSTextField(labelWithString: "")
   private let update = NSButton(title: "立即更新", target: nil, action: nil)
   private let importButton = NSButton(title: "导入词库…", target: nil, action: nil)
   private let removeButton = NSButton(title: "移除导入词库", target: nil, action: nil)
@@ -79,7 +80,9 @@ final class DictionaryWindowController: NSWindowController, NSTableViewDataSourc
     let folder = NSButton(title: "打开词库目录", target: self, action: #selector(openFolder))
     let buttons = NSStackView(views: [importButton, removeButton, folder])
     buttons.spacing = 8
-    let schedule = NSStackView(views: [automatic, update])
+    updateProgress.font = .monospacedDigitSystemFont(ofSize: 12, weight: .regular)
+    updateProgress.textColor = .secondaryLabelColor
+    let schedule = NSStackView(views: [automatic, update, updateProgress])
     schedule.spacing = 20
     let note = NSTextField(wrappingLabelWithString: "更新来源：iDvel/rime-ice。更新已安装的中英文分词库，保留个人词库与学习记录。每次修改前保存备份，完成后重新部署。")
     note.font = .systemFont(ofSize: 11)
@@ -161,16 +164,21 @@ final class DictionaryWindowController: NSWindowController, NSTableViewDataSourc
 
   @objc private func updateNow() {
     guard !busy else { return }
+    updateProgress.stringValue = "准备更新…"
     busy = true
     state.lastAttempt = Date()
     state.message = "正在下载雾凇拼音词库…"
-    do { try store.saveState(state) } catch { busy = false; showError(error); return }
+    do { try store.saveState(state) } catch { busy = false; updateProgress.stringValue = "更新失败"; showError(error); return }
     refresh()
     Task { @MainActor [weak self] in
       guard let self = self else { return }
       do {
-        let updates = try await self.store.downloadUpdates()
+        let updates = try await self.store.downloadUpdates { [weak self] completed, total in
+          self?.updateProgress.stringValue = "下载 \(completed)/\(total)"
+        }
+        self.updateProgress.stringValue = "正在应用…"
         try await self.performStorage { try self.store.installUpdates(updates) }
+        self.updateProgress.stringValue = "已更新 \(updates.count)/\(updates.count)"
         self.state.lastSuccess = Date()
         self.state.message = "已更新 \(updates.count) 个词库，已请求重新部署。"
         self.deploy()
@@ -178,6 +186,7 @@ final class DictionaryWindowController: NSWindowController, NSTableViewDataSourc
           self.state.message += " 更新设置保存失败：\(error.localizedDescription)"
         }
       } catch {
+        self.updateProgress.stringValue = "更新失败"
         self.state.message = "更新失败：\(error.localizedDescription)；自动更新将在 6 小时后重试。"
         do { try self.store.saveState(self.state) } catch { self.state.message += " 设置保存失败：\(error.localizedDescription)" }
       }
