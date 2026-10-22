@@ -16,6 +16,10 @@ final class SquirrelApplicationDelegate: NSObject, NSApplicationDelegate, SPUSta
   static let notificationIdentifier = "SquirrelNotification"
 
   let rimeAPI: RimeApi_stdbool = rime_get_api_stdbool().pointee
+  private lazy var dictionaryWindow = DictionaryWindowController(root: SquirrelApp.userDir) { [weak self] in self?.deploy() }
+
+  func openDictionaryManager() { dictionaryWindow.present() }
+
   var config: SquirrelConfig?
   var panel: SquirrelPanel?
   var enableNotifications = false
@@ -59,6 +63,7 @@ final class SquirrelApplicationDelegate: NSObject, NSApplicationDelegate, SPUSta
     panel = SquirrelPanel(position: .zero)
     refreshStatusItem()
     addObservers()
+    dictionaryWindow.startScheduler()
   }
 
   func applicationWillTerminate(_ notification: Notification) {

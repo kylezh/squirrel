@@ -285,6 +285,9 @@ final class SquirrelInputController: IMKInputController {
     menu.addItem(sync)
     menu.addItem(logDir)
     menu.addItem(setting)
+    let dictionaries = NSMenuItem(title: "词库管理…", action: #selector(openDictionaryManager), keyEquivalent: "")
+    dictionaries.target = self
+    menu.addItem(dictionaries)
     menu.addItem(wiki)
     menu.addItem(update)
 
@@ -301,6 +304,10 @@ final class SquirrelInputController: IMKInputController {
 
   @objc func openLogFolder() {
     NSApp.squirrelAppDelegate.openLogFolder()
+  }
+
+  @objc func openDictionaryManager() {
+    NSApp.squirrelAppDelegate.openDictionaryManager()
   }
 
   @objc func openRimeFolder() {

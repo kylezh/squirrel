@@ -102,6 +102,8 @@
 		D26434552706A15100857391 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D26434542706A15100857391 /* QuartzCore.framework */; };
 		E93074B70A5C264700470842 /* InputMethodKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E93074B60A5C264700470842 /* InputMethodKit.framework */; };
 		F45E005F2B8CA81C00179B75 /* UserNotifications.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F45E005E2B8CA81C00179B75 /* UserNotifications.framework */; };
+		D1C720000000000000000000 /* DictionaryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1C710000000000000000000 /* DictionaryStore.swift */; };
+		D1C720000000000000000001 /* DictionaryWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1C710000000000000000001 /* DictionaryWindowController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -325,6 +327,8 @@
 		D26434542706A15100857391 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		E93074B60A5C264700470842 /* InputMethodKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = InputMethodKit.framework; path = /System/Library/Frameworks/InputMethodKit.framework; sourceTree = "<absolute>"; };
 		F45E005E2B8CA81C00179B75 /* UserNotifications.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UserNotifications.framework; path = System/Library/Frameworks/UserNotifications.framework; sourceTree = SDKROOT; };
+		D1C710000000000000000000 /* DictionaryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryStore.swift; sourceTree = "<group>"; };
+		D1C710000000000000000001 /* DictionaryWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryWindowController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -346,6 +350,8 @@
 			isa = PBXGroup;
 			children = (
 				B38E9B902BE9AE1E0036ABEF /* SquirrelApplicationDelegate.swift */,
+				D1C710000000000000000001 /* DictionaryWindowController.swift */,
+				D1C710000000000000000000 /* DictionaryStore.swift */,
 				B38E9B942BEAFEFD0036ABEF /* SquirrelInputController.swift */,
 				CA5100010000000000000002 /* SpacingContext.swift */,
 				CA5100010000000000000005 /* PeriodSequence.swift */,
@@ -631,6 +637,8 @@
 				B397712D2BEEB39D0093A49B /* InputSource.swift in Sources */,
 				B397712B2BEE4C160093A49B /* SquirrelPanel.swift in Sources */,
 				B38E9B912BE9AE1E0036ABEF /* SquirrelApplicationDelegate.swift in Sources */,
+				D1C720000000000000000001 /* DictionaryWindowController.swift in Sources */,
+				D1C720000000000000000000 /* DictionaryStore.swift in Sources */,
 				B39771272BED9B250093A49B /* SquirrelTheme.swift in Sources */,
 				B35D2FE82BF00839009D156B /* BridgingFunctions.swift in Sources */,
 				B3A001022F260100009D156B /* ReservedProperty.swift in Sources */,
