@@ -228,10 +228,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		CA5100010000000000000002 /* SpacingContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpacingContext.swift; sourceTree = "<group>"; };
-		CA5100010000000000000005 /* PeriodSequence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeriodSequence.swift; sourceTree = "<group>"; };
-		CA5100010000000000000001 /* InputContextProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputContextProbe.swift; sourceTree = "<group>"; };
-		CA5100010000000000000000 /* InputContinuityTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputContinuityTracker.swift; sourceTree = "<group>"; };
+		CA5100010000000000000002 /* SpacingContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SpacingContext.swift; path = sources/SpacingContext.swift; sourceTree = "<group>"; };
+		CA5100010000000000000005 /* PeriodSequence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PeriodSequence.swift; path = sources/PeriodSequence.swift; sourceTree = "<group>"; };
+		CA5100010000000000000001 /* InputContextProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = InputContextProbe.swift; path = sources/InputContextProbe.swift; sourceTree = "<group>"; };
+		CA5100010000000000000000 /* InputContinuityTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = InputContinuityTracker.swift; path = sources/InputContinuityTracker.swift; sourceTree = "<group>"; };
 		1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = /System/Library/Frameworks/Cocoa.framework; sourceTree = "<absolute>"; };
 		29B97324FDCFA39411CA2CEA /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = /System/Library/Frameworks/AppKit.framework; sourceTree = "<absolute>"; };
 		29B97325FDCFA39411CA2CEA /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = /System/Library/Frameworks/Foundation.framework; sourceTree = "<absolute>"; };
@@ -327,8 +327,8 @@
 		D26434542706A15100857391 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		E93074B60A5C264700470842 /* InputMethodKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = InputMethodKit.framework; path = /System/Library/Frameworks/InputMethodKit.framework; sourceTree = "<absolute>"; };
 		F45E005E2B8CA81C00179B75 /* UserNotifications.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UserNotifications.framework; path = System/Library/Frameworks/UserNotifications.framework; sourceTree = SDKROOT; };
-		D1C710000000000000000000 /* DictionaryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryStore.swift; sourceTree = "<group>"; };
-		D1C710000000000000000001 /* DictionaryWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryWindowController.swift; sourceTree = "<group>"; };
+		D1C710000000000000000000 /* DictionaryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DictionaryStore.swift; path = sources/DictionaryStore.swift; sourceTree = "<group>"; };
+		D1C710000000000000000001 /* DictionaryWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DictionaryWindowController.swift; path = sources/DictionaryWindowController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
