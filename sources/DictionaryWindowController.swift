@@ -52,7 +52,7 @@ final class DictionaryWindowController: NSWindowController, NSTableViewDataSourc
     guard let content = window?.contentView else { return }
     let title = NSTextField(labelWithString: "雾凇拼音词库")
     title.font = .boldSystemFont(ofSize: 20)
-    let description = NSTextField(wrappingLabelWithString: "查看本地词库，导入 UTF-8 .dict.yaml 文件。导入词库会自动挂载到 rime_ice；仅可移除此窗口导入的词库。")
+    let description = NSTextField(wrappingLabelWithString: "查看本地词库，导入 UTF-8 .dict.yaml 文件。导入词库会自动挂载到当前雾凇词库入口；仅可移除此窗口导入的词库。")
     let column = NSTableColumn(identifier: .init("dictionary"))
     column.title = "词库文件"
     column.width = 450

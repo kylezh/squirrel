@@ -144,6 +144,26 @@ final class DictionaryStore {
     }
   }
 
+  /// Rime imports are not recursive; attach to the dictionary selected by the deployed schema.
+  private func entryPoint() throws -> String {
+    let schema = try checkedURL("build/rime_ice.schema.yaml")
+    guard files.fileExists(atPath: schema.path) else { return "rime_ice.dict.yaml" }
+    let api = rime_get_api_stdbool().pointee
+    var config = RimeConfig()
+    defer { _ = api.config_close(&config) }
+    let yaml = try String(contentsOf: schema, encoding: .utf8)
+    guard api.config_load_string(&config, yaml), let pointer = api.config_get_cstring(&config, "translator/dictionary") else {
+      throw DictionaryFailure(message: "无法识别当前雾凇方案的词库入口，请先重新部署。")
+    }
+    let name = String(cString: pointer)
+    guard name.range(of: "^[A-Za-z0-9_/-]+$", options: .regularExpression) != nil else {
+      throw DictionaryFailure(message: "当前词库入口名称不支持。")
+    }
+    let path = name + ".dict.yaml"
+    _ = try checkedURL(path)
+    return path
+  }
+
   func importDictionary(from url: URL) throws {
     let data = try Data(contentsOf: url)
     let name = try dictionaryName(data, requireDependencies: true)
@@ -152,14 +172,15 @@ final class DictionaryStore {
     guard !files.fileExists(atPath: root.appendingPathComponent(path).path) else {
       throw DictionaryFailure(message: "同名词库已存在，未覆盖。")
     }
-    var main = try String(contentsOf: checkedURL("rime_ice.dict.yaml"), encoding: .utf8)
+    let entry = try entryPoint()
+    var main = try String(contentsOf: checkedURL(entry), encoding: .utf8)
     guard let end = main.range(of: "\n..."), main[..<end.lowerBound].contains("\nimport_tables:\n") else {
       throw DictionaryFailure(message: "未找到雾凇拼音 import_tables，无法自动挂载。")
     }
     // Insert immediately after import_tables so unrelated YAML fields cannot capture the entry.
     main = main.replacingOccurrences(of: "\nimport_tables:\n", with: "\nimport_tables:\n  - '\(name)'\n")
     let managed = try imports() + [path]
-    try transaction([path: data, "rime_ice.dict.yaml": Data(main.utf8),
+    try transaction([path: data, entry: Data(main.utf8),
                      ".squirrel-dictionaries/imports.json": try JSONEncoder().encode(managed)])
   }
 
@@ -167,7 +188,8 @@ final class DictionaryStore {
     let managed = try imports()
     guard managed.contains(path) else { throw DictionaryFailure(message: "仅可移除此窗口导入的词库。") }
     let name = String(path.dropLast(".dict.yaml".count))
-    for entry in try entries() where entry.path != path && entry.path != "rime_ice.dict.yaml" {
+    let targetEntry = try entryPoint()
+    for entry in try entries() where entry.path != path && entry.path != targetEntry {
       let data = try Data(contentsOf: checkedURL(entry.path))
       guard let text = String(data: data, encoding: .utf8), let end = text.range(of: "\n...") else { continue }
       let api = rime_get_api_stdbool().pointee
@@ -182,11 +204,11 @@ final class DictionaryStore {
         }
       }
     }
-    let main = try String(contentsOf: checkedURL("rime_ice.dict.yaml"), encoding: .utf8)
+    let main = try String(contentsOf: checkedURL(targetEntry), encoding: .utf8)
     guard main.contains("\n  - '\(name)'\n") else {
       throw DictionaryFailure(message: "词库引用已被手动修改，请在配置目录中处理。")
     }
-    try transaction(["rime_ice.dict.yaml": Data(main.replacingOccurrences(of: "\n  - '\(name)'\n", with: "\n").utf8),
+    try transaction([targetEntry: Data(main.replacingOccurrences(of: "\n  - '\(name)'\n", with: "\n").utf8),
                      ".squirrel-dictionaries/imports.json": try JSONEncoder().encode(managed.filter { $0 != path })], removing: [path])
   }
 

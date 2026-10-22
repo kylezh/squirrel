@@ -95,6 +95,17 @@ struct DictionaryTests {
     let stateBefore = DictionaryUpdateState(enabled: true)
     try store.saveState(stateBefore)
     try check(try store.loadState().enabled)
+    // A personal entry point must receive imports directly (Rime does not recurse import_tables).
+    try fm.createDirectory(at: root.appendingPathComponent("build"), withIntermediateDirectories: true)
+    try Data("translator:\n  dictionary: rime_ice_personal\n".utf8).write(to: root.appendingPathComponent("build/rime_ice.schema.yaml"))
+    let personal = "---\nname: rime_ice_personal\nversion: '1'\nimport_tables:\n  - rime_ice\n...\n"
+    try Data(personal.utf8).write(to: root.appendingPathComponent("rime_ice_personal.dict.yaml"))
+    try Data("---\nname: extra\nversion: '1'\n...\n词\tci\n".utf8).write(to: imported)
+    try store.importDictionary(from: imported)
+    try check(try String(contentsOf: root.appendingPathComponent("rime_ice_personal.dict.yaml"), encoding: .utf8).contains("  - 'extra'\n"))
+    try check(try String(contentsOf: root.appendingPathComponent("rime_ice.dict.yaml"), encoding: .utf8) == base)
+    try store.removeDictionary(path: "extra.dict.yaml")
+    try check(try String(contentsOf: root.appendingPathComponent("rime_ice_personal.dict.yaml"), encoding: .utf8) == personal)
     var state = DictionaryUpdateState()
     let now = Date()
     assert(!state.isDue(at: now))
